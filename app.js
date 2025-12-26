@@ -1,17 +1,18 @@
-// ---------- FIREBASE CONFIG ----------
+// -------- FIREBASE CONFIG --------
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_BUCKET",
-  messagingSenderId: "YOUR_MSG_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
+  authDomain: "rojbachat-7e5a8.firebaseapp.com",
+  projectId: "rojbachat-7e5a8",
+  storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+  messagingSenderId: "790739371754",
+  appId: "1:790739371754:web:9b0bd71f2579d664747993"
 };
 firebase.initializeApp(firebaseConfig);
+
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// -------------- AUTH -----------------
+// ---------- AUTH ----------
 function signup(){
   const email = document.getElementById("email").value;
   const pass = document.getElementById("password").value;
@@ -46,6 +47,12 @@ auth.onAuthStateChanged(user=>{
       wallet = doc.exists ? doc.data().balance : 0;
       updateWalletUI();
     });
+
+    db.collection("savings").doc(user.uid).get().then(doc=>{
+      savings = doc.exists ? doc.data().entries : [];
+      loadHistory();
+      loadChart();
+    });
   }
 });
 
@@ -67,15 +74,6 @@ function withdraw(){
 
 // ---------- DAILY SAVING ----------
 let savings = [];
-auth.onAuthStateChanged(user=>{
-  if(user){
-    db.collection("savings").doc(user.uid).get().then(doc=>{
-      savings = doc.exists ? doc.data().entries : [];
-      loadHistory();
-      loadChart();
-    });
-  }
-});
 
 function addSaving(){
   const amt = Number(document.getElementById("saveInput").value);
@@ -122,4 +120,4 @@ function loadChart(){
     },
     options:{responsive:true}
   });
-    }
+}
