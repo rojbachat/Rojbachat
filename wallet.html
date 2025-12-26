@@ -1,28 +1,37 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Wallet - Roj Bachat</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+<title>Wallet - Roj Bachat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:Arial;background:#f2f2f2;margin:0;}
+.header{background:#007bff;padding:18px;color:white;font-size:22px;text-align:center;}
+.card{background:white;padding:20px;border-radius:12px;box-shadow:0 2px 6px #0003;margin:20px;}
+.history-item{
+    padding:10px;border-bottom:1px solid #ddd;font-size:16px;
+}
+.back-btn{
+    position:fixed;bottom:20px;right:20px;
+    background:#007bff;color:white;padding:14px 20px;border-radius:40px;
+    font-size:18px;text-decoration:none;
+}
+</style>
 </head>
 <body>
-<div class="container">
 
-  <div class="card">
-    <h2>Wallet Balance: ₹<span id="walletBal">0</span></h2>
-  </div>
+<div class="header">Wallet</div>
 
-  <div class="card">
-    <h2>Withdraw Money</h2>
-    <input id="withdrawInput" class="input" type="number" placeholder="Enter Amount">
-    <button class="btn" onclick="withdraw()">Withdraw</button>
-  </div>
-
+<div class="card">
+    <h3>Total Savings</h3>
+    <h2>₹ 0.00</h2>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="app.js"></script>
+<div class="card">
+    <h3>Saving History</h3>
+    <div class="history-item">No transactions yet</div>
+</div>
+
+<a class="back-btn" href="index.html">Home</a>
+
 </body>
 </html>
