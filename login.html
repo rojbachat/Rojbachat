@@ -1,93 +1,91 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Login with Google</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
-  <style>
-    body {
-      font-family: Arial;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background: #f5f5f5;
-    }
-    .box {
-      text-align: center;
-      padding: 30px;
-      background: #fff;
-      border-radius: 10px;
-      width: 90%;
-      max-width: 350px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.1);
-    }
-    button {
-      padding: 12px 20px;
-      background: #4285F4;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      width: 100%;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    button:hover {
-      opacity: 0.9;
-    }
-  </style>
+<title>Login - Roj Bachat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:Arial;background:#f2f2f2;margin:0;padding:0;}
+.box{background:white;padding:25px;border-radius:12px;width:85%;margin:auto;margin-top:50px;box-shadow:0 2px 8px #0003;}
+input,button{width:100%;padding:14px;margin-top:10px;border-radius:10px;border:1px solid #ccc;font-size:16px;}
+button{background:#007bff;color:white;border:none;font-size:18px;}
+button:hover{opacity:0.9;}
+.google-btn{background:#db4437;color:white;}
+</style>
 </head>
-
 <body>
 
 <div class="box">
-  <h2>Login</h2>
-  <button onclick="googleLogin()">Login with Google</button>
-  <p id="msg" style="color:red; margin-top:10px;"></p>
+<h2 style="text-align:center;">Roj Bachat Login</h2>
+
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="password" placeholder="Password">
+
+<button onclick="login()">Login</button>
+<button onclick="register()">Register</button>
+
+<hr>
+<button class="google-btn" onclick="googleLogin()">Login with Google</button>
 </div>
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
 <script>
-  // Firebase Config
-  const firebaseConfig = {
-    apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
-    authDomain: "rojbachat-7e5a8.firebaseapp.com",
-    projectId: "rojbachat-7e5a8",
-    storageBucket: "rojbachat-7e5a8.firebasestorage.app",
-    messagingSenderId: "790739371754",
-    appId: "1:790739371754:web:9b0bd71f2579d664747993"
-  };
+// 👉 यहाँ अपना FirebaseConfig paste करें
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_BUCKET",
+  messagingSenderId: "YOUR_SENDER",
+  appId: "YOUR_APPID"
+};
 
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 
-  // Google Login Function
-  function googleLogin() {
+// ------------------------
+// Email Login
+// ------------------------
+function login(){
+    let email = document.getElementById("email").value;
+    let pass = document.getElementById("password").value;
+
+    auth.signInWithEmailAndPassword(email, pass)
+    .then(()=>{
+        window.location.href="index.html";
+    })
+    .catch(err=>alert(err.message));
+}
+
+// ------------------------
+// Register new user
+// ------------------------
+function register(){
+    let email = document.getElementById("email").value;
+    let pass = document.getElementById("password").value;
+
+    auth.createUserWithEmailAndPassword(email, pass)
+    .then(()=>{
+        alert("Registration successful!");
+    })
+    .catch(err=>alert(err.message));
+}
+
+// ------------------------
+// Google Login
+// ------------------------
+function googleLogin(){
     var provider = new firebase.auth.GoogleAuthProvider();
 
     auth.signInWithPopup(provider)
-      .then((result) => {
-        // Successful login → redirect to index.html
+    .then(()=>{
         window.location.href = "index.html";
-      })
-      .catch((error) => {
-        document.getElementById("msg").innerText = error.message;
-      });
-  }
-
-  // If already logged in → go to index.html automatically
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      window.location.href = "index.html";
-    }
-  });
+    })
+    .catch(err=>alert(err.message));
+}
 </script>
 
 </body>
-</html>
+  </html>
