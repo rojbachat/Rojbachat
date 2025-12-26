@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Wallet - Roj Bachat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+
+  <div class="card">
+    <h2>Wallet Balance: ₹<span id="walletBal">0</span></h2>
+  </div>
+
+  <div class="card">
+    <h2>Withdraw Money</h2>
+    <input id="withdrawInput" class="input" type="number" placeholder="Enter Amount">
+    <button class="btn" onclick="withdraw()">Withdraw</button>
+  </div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
