@@ -1,61 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Roj Bachat - Daily Saving</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: Arial; padding: 20px; background: #f4f6f8; }
-    .box {
-        max-width: 400px; margin: auto; background: #fff; padding: 20px;
-        border-radius: 12px; box-shadow: 0 0 15px rgba(0,0,0,0.1);
-    }
-    input, button {
-        width: 100%; padding: 12px; margin-top: 10px;
-        border-radius: 8px; font-size: 16px; box-sizing: border-box;
-    }
-    button { background: #007bff; color: #fff; border: none; cursor: pointer; }
-    button:hover { opacity: .9; }
-  </style>
+<title>Roj Bachat - Daily Saving</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:Arial;background:#f2f2f2;margin:0;padding:0;}
+.header{background:#007bff;padding:18px;color:white;font-size:22px;text-align:center;}
+.card{background:white;padding:20px;border-radius:12px;box-shadow:0 2px 6px #0003;margin:20px;}
+input,button{width:100%;padding:14px;margin-top:10px;border-radius:10px;border:1px solid #ccc;font-size:16px;}
+button{background:#007bff;color:white;border:none;font-size:18px;}
+button:hover{opacity:0.9;}
+.fixed-btn{
+    position: fixed; bottom:20px; right:20px;
+    background:#007bff;color:white;padding:14px 20px;border-radius:50px;
+    font-size:18px;text-decoration:none;
+}
+</style>
 </head>
 <body>
-  <div class="box">
-    <h2>Daily Saving Setup</h2>
 
-    <label>Enter Daily Saving Amount (₹)</label>
-    <input type="number" id="amount" placeholder="50 / 100 / 200">
+<div class="header">Roj Bachat</div>
+
+<div class="card">
+    <h3>Daily Saving Setup</h3>
+
+    <label>Daily Saving Amount (₹)</label>
+    <input type="number" id="amount" placeholder="Enter amount">
 
     <label>Your UPI ID</label>
     <input type="text" id="upi" placeholder="example@upi">
 
-    <button onclick="startMandate()">Start Daily Saving</button>
+    <button onclick="startSaving()">Start Daily Auto Debit</button>
+</div>
 
-    <p id="response" style="margin-top:15px; color:green;"></p>
-  </div>
+<a href="wallet.html" class="fixed-btn">Wallet</a>
 
-  <script>
-    function startMandate() {
-        let amount = document.getElementById("amount").value;
-        let upi = document.getElementById("upi").value;
+<script>
+function startSaving(){
+    let amount = document.getElementById("amount").value;
+    let upi = document.getElementById("upi").value;
 
-        if(amount < 1){ alert("Enter valid amount"); return; }
-        if(!upi.includes("@")){ alert("Enter valid UPI ID"); return; }
-
-        fetch("https://YOUR_FIREBASE_FUNCTIONS_URL/api/create-mandate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ amount: amount, upi_id: upi })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if(data?.payment_link){
-                document.getElementById("response").innerText = "Mandate Created! Redirecting...";
-                window.location.href = data.payment_link;
-            } else {
-                alert("Error: " + data.message);
-            }
-        })
-        .catch(err => alert("Backend Error: " + err));
+    if(amount=="" || upi==""){
+        alert("Please fill all details");
+        return;
     }
-  </script>
+
+    // 🔥 यहाँ अपना Cashfree Hosted Autopay Link paste करें
+    let hostedLink = "https://payments.cashfree.com/autoPay/YOUR_LINK_HERE";
+
+    // User को redirect करना
+    window.location.href = hostedLink + "?amount=" + amount + "&upi_id=" + upi;
+}
+</script>
+
 </body>
 </html>
