@@ -15,11 +15,22 @@ button:hover{opacity:0.9;}
     background:#007bff;color:white;padding:14px 20px;border-radius:50px;
     font-size:18px;text-decoration:none;
 }
+.logout{
+    position:fixed; top:10px; right:10px;
+    background:red;color:white;padding:10px 15px;border-radius:8px;text-decoration:none;
+}
 </style>
 </head>
 <body>
 
 <div class="header">Roj Bachat</div>
+
+<a class="logout" href="#" onclick="logout()">Logout</a>
+
+<div class="card">
+    <h3>User Details</h3>
+    <p id="userEmail">Loading...</p>
+</div>
 
 <div class="card">
     <h3>Daily Saving Setup</h3>
@@ -35,7 +46,40 @@ button:hover{opacity:0.9;}
 
 <a href="wallet.html" class="fixed-btn">Wallet</a>
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
 <script>
+// 🔥 Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
+  authDomain: "rojbachat-7e5a8.firebaseapp.com",
+  projectId: "rojbachat-7e5a8",
+  storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+  messagingSenderId: "790739371754",
+  appId: "1:790739371754:web:9b0bd71f2579d664747993"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+// USER INFO
+auth.onAuthStateChanged(user=>{
+    if(!user){
+        window.location.href="login.html";
+    } else {
+        document.getElementById("userEmail").innerText = user.email;
+    }
+});
+
+// LOGOUT
+function logout(){
+    auth.signOut().then(()=> window.location.href="login.html");
+}
+
+
+// DAILY AUTOPAY
 function startSaving(){
     let amount = document.getElementById("amount").value;
     let upi = document.getElementById("upi").value;
@@ -45,13 +89,12 @@ function startSaving(){
         return;
     }
 
-    // 🔥 यहाँ अपना Cashfree Hosted Autopay Link paste करें
+    // 🔥 यहाँ अपना Cashfree Hosted Autopay Link लगाना है
     let hostedLink = "https://payments.cashfree.com/autoPay/YOUR_LINK_HERE";
 
-    // User को redirect करना
     window.location.href = hostedLink + "?amount=" + amount + "&upi_id=" + upi;
 }
 </script>
 
 </body>
-</html>
+    </html>
