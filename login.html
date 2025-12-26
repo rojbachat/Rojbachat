@@ -10,21 +10,26 @@
   <div class="container">
       <div class="card">
           <h2>Login</h2>
+
+          <button class="btn" style="background:#DB4437" onclick="googleLogin()">
+            Login with Google
+          </button>
+
+          <p style="margin-top:20px; text-align:center; opacity:0.6;">OR</p>
+
           <input id="email" class="input" type="email" placeholder="Email">
           <input id="password" class="input" type="password" placeholder="Password">
           <button class="btn" onclick="login()">Login</button>
 
-          <p style="margin-top:15px; text-align:center;">Don't have an account?</p>
-          <button class="btn" style="background:#222" onclick="signup()">Signup</button>
+          <button class="btn" style="background:#222;margin-top:12px;" onclick="signup()">
+            Signup
+          </button>
       </div>
   </div>
 
-  <!-- FIREBASE SDK -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-  <!-- YOUR APP FILE -->
   <script src="app.js"></script>
 </body>
 </html>
