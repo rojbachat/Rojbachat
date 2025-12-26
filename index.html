@@ -1,39 +1,154 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Roj Bachat Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+  <title>Roj Bachat - Daily Saving</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body { font-family: Arial; background:#f3f3f3; padding:20px; }
+    h2, h3 { text-align:center; }
+    .card{
+      background:white; padding:20px; margin:15px auto; width:90%;
+      border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2);
+    }
+    input{
+      width:100%; padding:10px; margin-top:10px; border:1px solid #ccc;
+      border-radius:5px;
+    }
+    button{
+      margin-top:10px; width:100%; padding:12px;
+      border:none; background:#28a745; color:white;
+      border-radius:5px; font-size:16px; cursor:pointer;
+    }
+    ul{ padding-left:15px; }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-<div class="container">
 
-  <div class="card">
-    <button class="btn" onclick="window.location='wallet.html'">Open Wallet</button>
-  </div>
+<h2>Roj Bachat - Daily Saving</h2>
 
-  <div class="card">
-    <h2>Daily Saving</h2>
-    <input id="saveInput" class="input" type="number" placeholder="Enter Amount">
-    <button class="btn" onclick="addSaving()">Save Amount</button>
-  </div>
-
-  <div class="card">
-    <h2>Saving History</h2>
-    <ul id="historyList"></ul>
-  </div>
-
-  <div class="card">
-    <h2>Monthly Saving Chart</h2>
-    <canvas id="chartCanvas" height="200"></canvas>
-  </div>
-
+<div class="card">
+  <h3>Add Daily Saving</h3>
+  <input type="number" id="saveAmount" placeholder="Enter Amount (₹)">
+  <button id="saveBtn">Save Now</button>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="app.js"></script>
+<div class="card">
+  <h3>Today Total Saved: ₹<span id="todayTotal">0</span></h3>
+</div>
+
+<div class="card">
+  <h3>Monthly Chart</h3>
+  <canvas id="monthChart" height="200"></canvas>
+</div>
+
+<div class="card">
+  <h3>Saving History</h3>
+  <ul id="historyList"></ul>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { 
+    getFirestore, collection, addDoc, query, where, getDocs 
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4EAX4kzpmY",
+    authDomain: "rojbachat-7e5a8.firebaseapp.com",
+    projectId: "rojbachat-7e5a8",
+    storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+    messagingSenderId: "790739371754",
+    appId: "1:790739371754:web:9b0bd71f2579d664747993"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  onAuthStateChanged(auth, user => {
+    if (!user) window.location.href = "login.html";
+    else {
+      loadTodayTotal(user.uid);
+      loadHistory(user.uid);
+      loadMonthlyChart(user.uid);
+    }
+  });
+
+  // SAVE BUTTON
+  document.getElementById("saveBtn").addEventListener("click", async () => {
+    const amount = document.getElementById("saveAmount").value;
+    if (!amount || amount <= 0) return alert("Enter valid amount");
+
+    const user = auth.currentUser;
+
+    await addDoc(collection(db, "dailySavings"), {
+      uid: user.uid,
+      amount: Number(amount),
+      date: new Date().toISOString().split("T")[0],
+      timestamp: Date.now()
+    });
+
+    alert("Saving Added");
+    document.getElementById("saveAmount").value = "";
+
+    loadTodayTotal(user.uid);
+    loadHistory(user.uid);
+    loadMonthlyChart(user.uid);
+  });
+
+  async function loadTodayTotal(uid) {
+    const today = new Date().toISOString().split("T")[0];
+    const q = query(collection(db, "dailySavings"),
+                    where("uid","==",uid),
+                    where("date","==",today));
+    const snap = await getDocs(q);
+
+    let total = 0;
+    snap.forEach(x => total += x.data().amount);
+    document.getElementById("todayTotal").innerText = total;
+  }
+
+  async function loadHistory(uid) {
+    const q = query(collection(db, "dailySavings"), where("uid","==",uid));
+    const snap = await getDocs(q);
+
+    const list = document.getElementById("historyList");
+    list.innerHTML = "";
+
+    snap.forEach(x => {
+      const d = x.data();
+      const li = document.createElement("li");
+      li.textContent = `${d.date} — ₹${d.amount}`;
+      list.appendChild(li);
+    });
+  }
+
+  async function loadMonthlyChart(uid) {
+    const q = query(collection(db, "dailySavings"), where("uid","==",uid));
+    const snap = await getDocs(q);
+
+    const monthly = {};
+
+    snap.forEach(x => {
+      const d = x.data();
+      const m = d.date.substring(0,7);
+      if (!monthly[m]) monthly[m] = 0;
+      monthly[m] += d.amount;
+    });
+
+    new Chart(document.getElementById("monthChart"), {
+      type: "bar",
+      data: {
+        labels:Object.keys(monthly),
+        datasets:[{ label:"Monthly Saved ₹", data:Object.values(monthly) }]
+      }
+    });
+  }
+</script>
+
 </body>
-</html>
+  </html>
