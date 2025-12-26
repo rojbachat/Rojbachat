@@ -3,152 +3,59 @@
 <head>
   <title>Roj Bachat - Daily Saving</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <style>
-    body { font-family: Arial; background:#f3f3f3; padding:20px; }
-    h2, h3 { text-align:center; }
-    .card{
-      background:white; padding:20px; margin:15px auto; width:90%;
-      border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2);
+    body { font-family: Arial; padding: 20px; background: #f4f6f8; }
+    .box {
+        max-width: 400px; margin: auto; background: #fff; padding: 20px;
+        border-radius: 12px; box-shadow: 0 0 15px rgba(0,0,0,0.1);
     }
-    input{
-      width:100%; padding:10px; margin-top:10px; border:1px solid #ccc;
-      border-radius:5px;
+    input, button {
+        width: 100%; padding: 12px; margin-top: 10px;
+        border-radius: 8px; font-size: 16px; box-sizing: border-box;
     }
-    button{
-      margin-top:10px; width:100%; padding:12px;
-      border:none; background:#28a745; color:white;
-      border-radius:5px; font-size:16px; cursor:pointer;
-    }
-    ul{ padding-left:15px; }
+    button { background: #007bff; color: #fff; border: none; cursor: pointer; }
+    button:hover { opacity: .9; }
   </style>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+  <div class="box">
+    <h2>Daily Saving Setup</h2>
 
-<h2>Roj Bachat - Daily Saving</h2>
+    <label>Enter Daily Saving Amount (₹)</label>
+    <input type="number" id="amount" placeholder="50 / 100 / 200">
 
-<div class="card">
-  <h3>Add Daily Saving</h3>
-  <input type="number" id="saveAmount" placeholder="Enter Amount (₹)">
-  <button id="saveBtn">Save Now</button>
-</div>
+    <label>Your UPI ID</label>
+    <input type="text" id="upi" placeholder="example@upi">
 
-<div class="card">
-  <h3>Today Total Saved: ₹<span id="todayTotal">0</span></h3>
-</div>
+    <button onclick="startMandate()">Start Daily Saving</button>
 
-<div class="card">
-  <h3>Monthly Chart</h3>
-  <canvas id="monthChart" height="200"></canvas>
-</div>
+    <p id="response" style="margin-top:15px; color:green;"></p>
+  </div>
 
-<div class="card">
-  <h3>Saving History</h3>
-  <ul id="historyList"></ul>
-</div>
+  <script>
+    function startMandate() {
+        let amount = document.getElementById("amount").value;
+        let upi = document.getElementById("upi").value;
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  import { 
-    getFirestore, collection, addDoc, query, where, getDocs 
-  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        if(amount < 1){ alert("Enter valid amount"); return; }
+        if(!upi.includes("@")){ alert("Enter valid UPI ID"); return; }
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4EAX4kzpmY",
-    authDomain: "rojbachat-7e5a8.firebaseapp.com",
-    projectId: "rojbachat-7e5a8",
-    storageBucket: "rojbachat-7e5a8.firebasestorage.app",
-    messagingSenderId: "790739371754",
-    appId: "1:790739371754:web:9b0bd71f2579d664747993"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  onAuthStateChanged(auth, user => {
-    if (!user) window.location.href = "login.html";
-    else {
-      loadTodayTotal(user.uid);
-      loadHistory(user.uid);
-      loadMonthlyChart(user.uid);
+        fetch("https://YOUR_FIREBASE_FUNCTIONS_URL/api/create-mandate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ amount: amount, upi_id: upi })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data?.payment_link){
+                document.getElementById("response").innerText = "Mandate Created! Redirecting...";
+                window.location.href = data.payment_link;
+            } else {
+                alert("Error: " + data.message);
+            }
+        })
+        .catch(err => alert("Backend Error: " + err));
     }
-  });
-
-  // SAVE BUTTON
-  document.getElementById("saveBtn").addEventListener("click", async () => {
-    const amount = document.getElementById("saveAmount").value;
-    if (!amount || amount <= 0) return alert("Enter valid amount");
-
-    const user = auth.currentUser;
-
-    await addDoc(collection(db, "dailySavings"), {
-      uid: user.uid,
-      amount: Number(amount),
-      date: new Date().toISOString().split("T")[0],
-      timestamp: Date.now()
-    });
-
-    alert("Saving Added");
-    document.getElementById("saveAmount").value = "";
-
-    loadTodayTotal(user.uid);
-    loadHistory(user.uid);
-    loadMonthlyChart(user.uid);
-  });
-
-  async function loadTodayTotal(uid) {
-    const today = new Date().toISOString().split("T")[0];
-    const q = query(collection(db, "dailySavings"),
-                    where("uid","==",uid),
-                    where("date","==",today));
-    const snap = await getDocs(q);
-
-    let total = 0;
-    snap.forEach(x => total += x.data().amount);
-    document.getElementById("todayTotal").innerText = total;
-  }
-
-  async function loadHistory(uid) {
-    const q = query(collection(db, "dailySavings"), where("uid","==",uid));
-    const snap = await getDocs(q);
-
-    const list = document.getElementById("historyList");
-    list.innerHTML = "";
-
-    snap.forEach(x => {
-      const d = x.data();
-      const li = document.createElement("li");
-      li.textContent = `${d.date} — ₹${d.amount}`;
-      list.appendChild(li);
-    });
-  }
-
-  async function loadMonthlyChart(uid) {
-    const q = query(collection(db, "dailySavings"), where("uid","==",uid));
-    const snap = await getDocs(q);
-
-    const monthly = {};
-
-    snap.forEach(x => {
-      const d = x.data();
-      const m = d.date.substring(0,7);
-      if (!monthly[m]) monthly[m] = 0;
-      monthly[m] += d.amount;
-    });
-
-    new Chart(document.getElementById("monthChart"), {
-      type: "bar",
-      data: {
-        labels:Object.keys(monthly),
-        datasets:[{ label:"Monthly Saved ₹", data:Object.values(monthly) }]
-      }
-    });
-  }
-</script>
-
+  </script>
 </body>
-  </html>
+</html>
