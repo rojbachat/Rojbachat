@@ -17,15 +17,16 @@
       padding: 20px;
     }
     .box {
-      max-width: 400px;
+      max-width: 450px;
       margin: auto;
       background: white;
-      padding: 20px;
+      padding: 25px;
       border-radius: 10px;
-      box-shadow: 0 0 10px #ccc;
+      box-shadow: 0 0 12px #ccc;
     }
     h2 {
       text-align: center;
+      margin-bottom: 20px;
     }
     input {
       width: 100%;
@@ -43,25 +44,41 @@
       color: white;
       border-radius: 6px;
       font-size: 16px;
+      cursor: pointer;
     }
     button:hover {
       background: #0056b3;
+    }
+    .complete {
+      text-align: center;
+      margin-top: 15px;
+      font-weight: bold;
+      color: green;
+    }
+    .edit-btn {
+      background: #28a745;
+    }
+    .edit-btn:hover {
+      background: #1e7e34;
     }
   </style>
 </head>
 <body>
 
   <div class="box">
-    <h2>Your Profile</h2>
+    <h2>User Profile</h2>
 
-    <input id="name" placeholder="Full Name" />
-    <input id="bank" placeholder="Bank Account Number" />
-    <input id="ifsc" placeholder="IFSC Code" />
-    <input id="upi" placeholder="UPI ID" />
-    <input id="pan" placeholder="PAN Card Number" />
-    <input id="aadhaar" placeholder="Aadhaar Number" />
+    <input id="name" placeholder="Full Name" disabled />
+    <input id="bank" placeholder="Bank Account Number" disabled />
+    <input id="ifsc" placeholder="IFSC Code" disabled />
+    <input id="upi" placeholder="UPI ID" disabled />
+    <input id="pan" placeholder="PAN Card Number" disabled />
+    <input id="aadhaar" placeholder="Aadhaar Number" disabled />
 
-    <button onclick="saveProfile()">Save Profile</button>
+    <button id="editBtn" class="edit-btn" onclick="enableEdit()">Edit Profile</button>
+    <button id="saveBtn" style="display:none;" onclick="saveProfile()">Save Profile</button>
+
+    <div id="status" class="complete"></div>
   </div>
 
   <script>
@@ -80,45 +97,63 @@
     const auth = firebase.auth();
     const db = firebase.database();
 
-    // Auto Load Profile Data
+    const inputs = ["name","bank","ifsc","upi","pan","aadhaar"];
+    const editBtn = document.getElementById("editBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const statusDiv = document.getElementById("status");
+
+    // Login Check
     auth.onAuthStateChanged(user => {
-      if (!user) {
+      if(!user){
         window.location.href = "login.html";
         return;
       }
 
-      db.ref("profiles/" + user.uid).once("value", snapshot => {
+      // Load user data
+      db.ref("profiles/"+user.uid).once("value", snapshot => {
         const data = snapshot.val();
-        if (data) {
-          document.getElementById("name").value = data.name || "";
-          document.getElementById("bank").value = data.bank || "";
-          document.getElementById("ifsc").value = data.ifsc || "";
-          document.getElementById("upi").value = data.upi || "";
-          document.getElementById("pan").value = data.pan || "";
-          document.getElementById("aadhaar").value = data.aadhaar || "";
+        if(data){
+          inputs.forEach(id => {
+            document.getElementById(id).value = data[id] || "";
+          });
+          checkComplete();
         }
       });
     });
 
+    // Enable Edit
+    function enableEdit(){
+      inputs.forEach(id => document.getElementById(id).disabled = false);
+      editBtn.style.display = "none";
+      saveBtn.style.display = "block";
+      statusDiv.innerText = "";
+    }
+
     // Save Profile
-    function saveProfile() {
+    function saveProfile(){
       const user = auth.currentUser;
-      if (!user) return alert("Not logged in!");
+      if(!user) return alert("Not logged in!");
 
-      const data = {
-        name: name.value,
-        bank: bank.value,
-        ifsc: ifsc.value,
-        upi: upi.value,
-        pan: pan.value,
-        aadhaar: aadhaar.value
-      };
+      const data = {};
+      inputs.forEach(id => data[id] = document.getElementById(id).value);
 
-      db.ref("profiles/" + user.uid).set(data)
-      .then(() => alert("Profile Updated Successfully"))
-      .catch(err => alert("Error: " + err.message));
+      db.ref("profiles/"+user.uid).set(data)
+        .then(()=>{
+          alert("Profile Saved Successfully");
+          inputs.forEach(id => document.getElementById(id).disabled = true);
+          editBtn.style.display = "block";
+          saveBtn.style.display = "none";
+          checkComplete();
+        })
+        .catch(err => alert("Error: "+err.message));
+    }
+
+    // Check if all fields filled
+    function checkComplete(){
+      const allFilled = inputs.every(id => document.getElementById(id).value.trim() !== "");
+      statusDiv.innerText = allFilled ? "Profile Complete ✅" : "";
     }
   </script>
 
 </body>
-</html>
+  </html>
