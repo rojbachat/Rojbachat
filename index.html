@@ -1,95 +1,75 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>My Groups - Roj Bachat</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Saving Wallet</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial;
+            background: #f5f5f5;
+            text-align: center;
+        }
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+        header {
+            background: #4CAF50;
+            padding: 25px 0;
+            color: white;
+        }
 
-<style>
-body{
-    background:#f2f3fa;
-    font-family:'Poppins',sans-serif;
-    padding:20px;
-}
-.title{
-    font-size:24px;
-    font-weight:600;
-    margin-bottom:15px;
-}
-.group-card{
-    background:white;
-    padding:18px;
-    border-radius:16px;
-    box-shadow:0 6px 14px rgba(0,0,0,0.08);
-    margin-bottom:14px;
-    cursor:pointer;
-}
-.group-name{
-    font-size:20px;
-    font-weight:600;
-}
-.group-info{
-    font-size:15px;
-    margin-top:5px;
-    color:#666;
-}
-</style>
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
 
+        .button-grid {
+            margin-top: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 90%;
+            max-width: 420px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .btn {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #4CAF50;
+            font-size: 18px;
+            font-weight: 600;
+            color: #4CAF50;
+            text-decoration: none;
+            display: block;
+            transition: 0.3s;
+        }
+
+        .btn:hover {
+            background: #4CAF50;
+            color: white;
+        }
+    </style>
 </head>
+
 <body>
 
-<h2 class="title">Your Saving Groups</h2>
-<div id="groupList"></div>
+    <header>
+        <h1>Daily Saving Wallet</h1>
+        <p>Simple • Fast • Secure</p>
+    </header>
 
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyC98Lxjn6jn-V9NQjcOGluL04EAX4kzpmY",
-  authDomain: "rojbachat-7e5a8.firebaseapp.com",
-  projectId: "rojbachat-7e5a8",
-  storageBucket: "rojbachat-7e5a8.firebasestorage.app",
-  messagingSenderId: "790739371754",
-  appId: "1:790739371754:web:9b0bd71f2579d664747993"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-firebase.auth().onAuthStateChanged((user)=>{
-    if(user){
-        loadGroups(user.uid);
-    }
-});
-
-function loadGroups(uid){
-    db.collection("groups")
-      .where("members","array-contains",uid)
-      .onSnapshot(snapshot=>{
-          let html="";
-          snapshot.forEach(doc=>{
-              let g=doc.data();
-              html+=`
-                <div class="group-card" onclick="openGroup('${doc.id}')">
-                    <div class="group-name">${g.name}</div>
-                    <div class="group-info">
-                        Daily Amount: ₹${g.dailyAmount} <br>
-                        Members: ${g.members.length}
-                    </div>
-                </div>
-              `;
-          });
-          document.getElementById("groupList").innerHTML=html;
-      });
-}
-
-function openGroup(id){
-    window.location.href="group.html?gid="+id;
-}
-</script>
+    <div class="button-grid">
+        <a href="wallet.html" class="btn">Wallet</a>
+        <a href="profile.html" class="btn">Profile</a>
+        <a href="history.html" class="btn">History</a>
+        <a href="logout.html" class="btn">Logout</a>
+    </div>
 
 </body>
 </html>
