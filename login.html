@@ -3,38 +3,50 @@
 <head>
 <title>Login - Roj Bachat</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
-body{font-family:Arial;background:#f2f2f2;margin:0;padding:0;}
-.box{background:white;padding:25px;border-radius:12px;width:85%;margin:auto;margin-top:50px;box-shadow:0 2px 8px #0003;}
-input,button{width:100%;padding:14px;margin-top:10px;border-radius:10px;border:1px solid #ccc;font-size:16px;}
-button{background:#007bff;color:white;border:none;font-size:18px;}
-button:hover{opacity:0.9;}
-.google-btn{background:#db4437;color:white;}
+body{
+    font-family: Arial;
+    background:#f4f6ff;
+    padding:25px;
+    text-align:center;
+}
+.box{
+    background:white;
+    padding:30px;
+    border-radius:20px;
+    max-width:350px;
+    margin:auto;
+    margin-top:80px;
+    box-shadow:0 5px 15px rgba(0,0,0,0.08);
+}
+.btn{
+    background:#4285F4;
+    color:white;
+    padding:14px;
+    width:100%;
+    border:none;
+    border-radius:10px;
+    font-size:18px;
+    cursor:pointer;
+}
 </style>
+
 </head>
 <body>
 
 <div class="box">
-<h2 style="text-align:center;">Roj Bachat Login</h2>
-
-<input type="email" id="email" placeholder="Email">
-<input type="password" id="password" placeholder="Password">
-
-<button onclick="login()">Login</button>
-<button onclick="register()">Register</button>
-
-<hr>
-<button class="google-btn" onclick="googleLogin()">Login with Google</button>
+    <h2>Roj Bachat Login</h2>
+    <button class="btn" onclick="googleLogin()">Login with Google</button>
 </div>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
 <script>
-// 🔥 YOUR FIREBASE CONFIG (READY)
 const firebaseConfig = {
-  apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
+  apiKey: "AIzaSyC98Lxjn6jn-V9NQjcOGluL04EAX4kzpmY",
   authDomain: "rojbachat-7e5a8.firebaseapp.com",
   projectId: "rojbachat-7e5a8",
   storageBucket: "rojbachat-7e5a8.firebasestorage.app",
@@ -44,31 +56,29 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+const db = firebase.firestore();
 
-// Email Login
-function login(){
-    let email = document.getElementById("email").value;
-    let pass = document.getElementById("password").value;
-    auth.signInWithEmailAndPassword(email, pass)
-    .then(()=> window.location.href="index.html")
-    .catch(err=>alert(err.message));
-}
-
-// Register
-function register(){
-    let email = document.getElementById("email").value;
-    let pass = document.getElementById("password").value;
-    auth.createUserWithEmailAndPassword(email, pass)
-    .then(()=> alert("Registration successful!"))
-    .catch(err=>alert(err.message));
-}
-
-// Google Login
 function googleLogin(){
     var provider = new firebase.auth.GoogleAuthProvider();
+
     auth.signInWithPopup(provider)
-    .then(()=> window.location.href="index.html")
-    .catch(err=>alert(err.message));
+    .then(async (res)=>{
+        const user = res.user;
+
+        // If first time login -> Create profile in Firestore
+        await db.collection("users").doc(user.uid).set({
+            name: user.displayName,
+            email: user.email,
+            balance: 0,
+            dailySaving: 0,
+            photo: user.photoURL
+        }, { merge:true });
+
+        window.location="index.html";
+    })
+    .catch(err=>{
+        alert("Login Error: "+err.message);
+    });
 }
 </script>
 
