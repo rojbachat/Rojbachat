@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Withdraw - Roj Bachat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        .box { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 5px #ccc; }
+        input, button {
+            width: 100%; padding: 12px; border-radius: 8px; margin-top: 10px;
+            border: 1px solid #aaa;
+        }
+        button { background: #e53935; color: #fff; border: none; }
+        .wallet {
+            background: #e53935; color: #fff; padding: 15px; border-radius: 10px;
+            text-align: center; margin-bottom: 20px; font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Withdraw Money</h2>
+
+<div class="wallet">Wallet: ₹<span id="walletBalance">0</span></div>
+
+<div class="box">
+    <label>Enter Amount</label>
+    <input type="number" id="amountInput" placeholder="Minimum ₹100">
+
+    <label>UPI ID</label>
+    <input type="text" id="upiInput" placeholder="example@upi">
+
+    <button onclick="withdraw()">Submit Withdraw Request</button>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
+  authDomain: "rojbachat-7e5a8.firebaseapp.com",
+  projectId: "rojbachat-7e5a8",
+  storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+  messagingSenderId: "790739371754",
+  appId: "1:790739371754:web:9b0bd71f2579d664747993"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+auth.onAuthStateChanged((user)=>{
+    if(!user) window.location.href="login.html";
+    else loadBalance();
+});
+
+function loadBalance(){
+    db.collection("users").doc(auth.currentUser.uid)
+    .onSnapshot(doc => {
+        document.getElementById("walletBalance").innerText = doc.data().wallet || 0;
+    });
+}
+
+function withdraw(){
+    let amount = Number(amountInput.value);
+    let upi = upiInput.value.trim();
+
+    if(amount < 100){
+        alert("Minimum withdrawal is ₹100");
+        return;
+    }
+    if(upi.length < 5){
+        alert("Enter valid UPI ID");
+        return;
+    }
+
+    db.collection("withdraw_requests").add({
+        uid: auth.currentUser.uid,
+        amount: amount,
+        upi: upi,
+        status: "pending",
+        timestamp: Date.now()
+    });
+
+    alert("Withdraw request submitted!");
+}
+</script>
+
+</body>
+</html>
