@@ -1,42 +1,85 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Roj Bachat - Dashboard</title>
+<meta charset="UTF-8" />
+<title>Roj Bachat – Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body{font-family:Arial;background:#f4f6ff;padding:20px;}
-.card{background:white;padding:15px;margin-top:15px;border-radius:15px;box-shadow:0 4px 10px rgba(0,0,0,0.08);}
-.menu a{display:block;background:#4c6ef5;color:white;text-align:center;padding:14px;margin-top:10px;border-radius:10px;text-decoration:none;font-size:18px;}
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f4f6f9;
+    }
+    .header {
+        background: #4A90E2;
+        padding: 15px;
+        color: white;
+        text-align: center;
+        font-size: 22px;
+        font-weight: bold;
+    }
+    .container {
+        padding: 20px;
+    }
+    .card {
+        background: white;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-radius: 10px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        font-size: 18px;
+        text-align: center;
+    }
+    .menu-btn {
+        display: block;
+        width: 100%;
+        padding: 15px;
+        margin: 10px 0;
+        text-align: center;
+        font-size: 18px;
+        border-radius: 8px;
+        border: none;
+        background: #4A90E2;
+        color: white;
+        cursor: pointer;
+    }
+    .logout {
+        background: red !important;
+    }
 </style>
-
 </head>
 <body>
 
-<h2>Welcome to Roj Bachat</h2>
+<div class="header">Roj Bachat – Dashboard</div>
 
-<div class="card">
-    <h3>Your Daily Saving: ₹<span id="dailyAmt">0</span></h3>
-    <h3>Wallet Balance: ₹<span id="bal">0</span></h3>
-</div>
+<div class="container">
 
-<div class="menu">
-    <a href="daily-saving.html">Daily Saving Setup</a>
-    <a href="pay.html">Daily Payment</a>
-    <a href="add-money.html">Add Money</a>
-    <a href="withdraw.html">Withdraw</a>
-    <a href="history.html">History</a>
-    <a href="group.html">Groups</a>
-    <a href="profile.html">Profile</a>
+    <div class="card">
+        <b>Welcome,</b>
+        <div id="userEmail">Loading...</div>
+    </div>
+
+    <button class="menu-btn" onclick="location.href='daily-saving.html'">Daily Saving</button>
+    <button class="menu-btn" onclick="location.href='add-money.html'">Add Money</button>
+    <button class="menu-btn" onclick="location.href='pay.html'">Pay Now</button>
+    <button class="menu-btn" onclick="location.href='withdraw.html'">Withdraw</button>
+    <button class="menu-btn" onclick="location.href='history.html'">Saving History</button>
+    <button class="menu-btn" onclick="location.href='group.html'">Groups</button>
+    <button class="menu-btn" onclick="location.href='profile.html'">Profile</button>
+
+    <button class="menu-btn logout" onclick="logout()">Logout</button>
 </div>
 
 <script>
+// ---------------- Firebase Config ----------------
 const firebaseConfig = {
-  apiKey: "AIzaSyC98Lxjn6jn-V9NQjcOGluL04EAX4kzpmY",
+  apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
   authDomain: "rojbachat-7e5a8.firebaseapp.com",
   projectId: "rojbachat-7e5a8",
   storageBucket: "rojbachat-7e5a8.firebasestorage.app",
@@ -46,16 +89,22 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-const db = firebase.firestore();
 
-auth.onAuthStateChanged(async user=>{
-    if(!user){ window.location="login.html"; return; }
-
-    let data = await db.collection("users").doc(user.uid).get();
-
-    document.getElementById("dailyAmt").innerText = data.data().dailySaving;
-    document.getElementById("bal").innerText = data.data().balance;
+// ---------------- AUTH CHECK (No Loop) ----------------
+auth.onAuthStateChanged((user) => {
+    if (!user) {
+        window.location.href = "login.html";
+    } else {
+        document.getElementById("userEmail").innerText = user.email;
+    }
 });
+
+// ---------------- LOGOUT ----------------
+function logout() {
+    auth.signOut().then(() => {
+        window.location.href = "login.html";
+    });
+}
 </script>
 
 </body>
