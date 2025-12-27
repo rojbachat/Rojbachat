@@ -3,73 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Saving Wallet</title>
+    <title>Saver Dashboard</title>
+
+    <!-- Firebase CDN -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
     <style>
         body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
             margin: 0;
             padding: 0;
-            font-family: Arial;
-            background: #f5f5f5;
             text-align: center;
         }
-
-        header {
-            background: #4CAF50;
-            padding: 25px 0;
-            color: white;
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .button-grid {
+        .container {
+            padding: 20px;
             margin-top: 40px;
-            display: flex;
-            flex-direction: column;
+        }
+        h2 {
+            margin-bottom: 25px;
+        }
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 15px;
-            width: 90%;
-            max-width: 420px;
-            margin-left: auto;
-            margin-right: auto;
+            width: 80%;
+            margin: auto;
         }
-
-        .btn {
-            background: white;
+        button {
             padding: 15px;
-            border-radius: 10px;
-            border: 2px solid #4CAF50;
-            font-size: 18px;
-            font-weight: 600;
-            color: #4CAF50;
-            text-decoration: none;
-            display: block;
-            transition: 0.3s;
-        }
-
-        .btn:hover {
-            background: #4CAF50;
+            border: none;
+            background: #007bff;
             color: white;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .logout {
+            background: #e63946;
+        }
+        .logout:hover {
+            background: #b81f2c;
         }
     </style>
 </head>
-
 <body>
 
-    <header>
-        <h1>Daily Saving Wallet</h1>
-        <p>Simple • Fast • Secure</p>
-    </header>
+    <div class="container">
+        <h2>Welcome to Daily Saver</h2>
 
-    <div class="button-grid">
-        <a href="wallet.html" class="btn">Wallet</a>
-        <a href="profile.html" class="btn">Profile</a>
-        <a href="history.html" class="btn">History</a>
-        <a href="logout.html" class="btn">Logout</a>
+        <div class="btn-grid">
+            <button onclick="window.location.href='wallet.html'">Wallet</button>
+            <button onclick="window.location.href='profile.html'">Profile</button>
+            <button onclick="window.location.href='history.html'">History</button>
+            <button class="logout" onclick="logoutUser()">Logout</button>
+        </div>
     </div>
+
+    <script>
+        // -----------------------------------------
+        // 🔥 Firebase Config (Your Real Keys Added)
+        // -----------------------------------------
+        const firebaseConfig = {
+          apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
+          authDomain: "rojbachat-7e5a8.firebaseapp.com",
+          projectId: "rojbachat-7e5a8",
+          storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+          messagingSenderId: "790739371754",
+          appId: "1:790739371754:web:9b0bd71f2579d664747993"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // -----------------------------------------
+        // 🛑 Logout Function  
+        // -----------------------------------------
+        function logoutUser() {
+            auth.signOut().then(() => {
+                window.location.href = "login.html";
+            }).catch((error) => {
+                alert("Error: " + error.message);
+            });
+        }
+
+        // -----------------------------------------
+        // 🔐 Login Check (Stop unauth access)
+        // -----------------------------------------
+        auth.onAuthStateChanged(user => {
+            if (!user) {
+                window.location.href = "login.html";
+            }
+        });
+    </script>
 
 </body>
 </html>
