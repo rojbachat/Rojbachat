@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Panel - Roj Bachat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+table { width:100%; border-collapse: collapse; }
+th, td { border:1px solid #333; padding:8px; }
+</style>
+
+</head>
+
+<body>
+
+<h2>Admin Panel</h2>
+<button onclick="logout()">Logout</button>
+
+<h3>All Users</h3>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Email</th>
+<th>Mobile</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="userTable"></tbody>
+</table>
+
+<script>
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_BUCKET",
+    messagingSenderId: "YOUR_SENDER",
+    appId: "YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+
+// --- CHECK ADMIN LOGIN ---
+auth.onAuthStateChanged((user)=>{
+    if(!user) window.location.href="login.html";
+
+    if(user.email !== "rojbachat.admin@gmail.com"){
+        alert("You Are Not Admin!");
+        window.location.href="index.html";
+    }
+});
+
+
+// --- LOAD ALL USERS ---
+db.collection("users").onSnapshot(snapshot => {
+    let html = "";
+    snapshot.forEach(doc => {
+        let data = doc.data();
+        html += `
+        <tr>
+            <td>${data.name || "-"}</td>
+            <td>${data.email}</td>
+            <td>${data.mobile || "-"}</td>
+            <td>
+                <button onclick="view('${doc.id}')">View</button>
+                <button onclick="del('${doc.id}')">Delete</button>
+            </td>
+        </tr>`;
+    });
+    document.getElementById("userTable").innerHTML = html;
+});
+
+
+// --- VIEW USER DETAILS ---
+function view(id){
+    window.location.href = "profileview.html?id=" + id;
+}
+
+
+// --- DELETE USER ---
+function del(id){
+    if(confirm("Delete user?")){
+        db.collection("users").doc(id).delete()
+            .then(()=> alert("Deleted!"));
+    }
+}
+
+function logout(){
+    auth.signOut();
+    window.location.href="login.html";
+}
+</script>
+
+</body>
+</html>
