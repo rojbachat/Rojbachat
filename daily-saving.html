@@ -1,32 +1,85 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Daily Saving - Roj Bachat</title>
+<meta charset="UTF-8">
+<title>Daily Saving – Roj Bachat</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body{font-family:Arial;background:#f3f4fb;padding:20px;}
-.box{background:white;padding:20px;border-radius:15px;max-width:350px;margin:auto;margin-top:50px;box-shadow:0 4px 12px rgba(0,0,0,0.08);}
-.input{width:100%;padding:14px;font-size:16px;border-radius:10px;border:1px solid #ccc;margin-top:10px;}
-.btn{background:#28a745;padding:14px;color:white;width:100%;border:none;border-radius:10px;margin-top:15px;font-size:18px;}
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f4f6f9;
+    }
+    .header {
+        background: #4A90E2;
+        padding: 15px;
+        color: white;
+        text-align: center;
+        font-size: 22px;
+        font-weight: bold;
+    }
+    .container {
+        padding: 20px;
+    }
+    .card {
+        background: white;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-radius: 10px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        font-size: 18px;
+        text-align: center;
+    }
+    input {
+        width: 100%;
+        padding: 12px;
+        font-size: 18px;
+        border: 2px solid #4A90E2;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+    button {
+        width: 100%;
+        padding: 15px;
+        margin-top: 15px;
+        border-radius: 8px;
+        border: none;
+        background: #4A90E2;
+        color: white;
+        font-size: 18px;
+    }
 </style>
-
 </head>
 <body>
 
-<div class="box">
-    <h2>Daily Saving Setup</h2>
-    <input id="amount" class="input" type="number" placeholder="₹ enter daily amount">
-    <button class="btn" onclick="saveAmount()">Save</button>
+<div class="header">Daily Saving</div>
+
+<div class="container">
+
+    <div class="card">
+        <b>Your Daily Saving Amount</b><br>
+        <div id="currentSaving">Loading...</div>
+    </div>
+
+    <div class="card">
+        <b>Set / Update Daily Saving</b>
+        <input type="number" id="savingAmount" placeholder="Enter daily saving amount">
+        <button onclick="saveDailySaving()">Save</button>
+    </div>
+
 </div>
 
 <script>
+
+// ---------------- Firebase Config ----------------
 const firebaseConfig = {
-  apiKey: "AIzaSyC98Lxjn6jn-V9NQjcOGluL04EAX4kzpmY",
+  apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
   authDomain: "rojbachat-7e5a8.firebaseapp.com",
   projectId: "rojbachat-7e5a8",
   storageBucket: "rojbachat-7e5a8.firebasestorage.app",
@@ -38,25 +91,50 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-auth.onAuthStateChanged(user=>{
-    if(!user) window.location="login.html";
+// -------------- CHECK LOGIN --------------
+auth.onAuthStateChanged((user) => {
+    if (!user) {
+        window.location.href = "login.html";
+    } else {
+        loadSaving(user.uid);
+    }
 });
 
-function saveAmount(){
-    let amt = document.getElementById("amount").value;
+// -------------- LOAD CURRENT SAVING --------------
+function loadSaving(uid) {
+    db.collection("dailySaving")
+      .doc(uid)
+      .get()
+      .then(doc => {
+          if (doc.exists) {
+              document.getElementById("currentSaving").innerHTML =
+                  "₹ " + doc.data().amount + " / day";
+          } else {
+              document.getElementById("currentSaving").innerHTML = "Not Set";
+          }
+      });
+}
 
-    if(amt <= 0){
-        alert("Enter valid amount");
+// -------------- SAVE NEW DAILY SAVING --------------
+function saveDailySaving() {
+    const amount = document.getElementById("savingAmount").value;
+
+    if (amount <= 0 || amount == "") {
+        alert("Please enter a valid amount");
         return;
     }
 
-    db.collection("users").doc(auth.currentUser.uid).update({
-        dailySaving: Number(amt)
-    }).then(()=>{
-        alert("Daily Saving Updated!");
-        window.location="index.html";
-    });
+    const uid = auth.currentUser.uid;
+
+    db.collection("dailySaving")
+      .doc(uid)
+      .set({ amount: amount })
+      .then(() => {
+          alert("Daily saving updated successfully!");
+          loadSaving(uid);
+      });
 }
+
 </script>
 
 </body>
