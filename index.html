@@ -1,107 +1,150 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saver Dashboard</title>
+<title>Daily Saving - Roj Bachat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- Firebase CDN -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f2f2f2;
-            margin: 0;
-            padding: 0;
-            text-align: center;
-        }
-        .container {
-            padding: 20px;
-            margin-top: 40px;
-        }
-        h2 {
-            margin-bottom: 25px;
-        }
-        .btn-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            width: 80%;
-            margin: auto;
-        }
-        button {
-            padding: 15px;
-            border: none;
-            background: #007bff;
-            color: white;
-            border-radius: 6px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-        .logout {
-            background: #e63946;
-        }
-        .logout:hover {
-            background: #b81f2c;
-        }
-    </style>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<style>
+body {
+    font-family: 'Poppins', sans-serif;
+    background: #f3f5ff;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 420px;
+    margin: auto;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 18px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.value {
+    font-size: 26px;
+    font-weight: 700;
+    color: #4a5cff;
+}
+
+.btn {
+    width: 100%;
+    background: #4a5cff;
+    color: white;
+    padding: 14px;
+    border: none;
+    border-radius: 14px;
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 10px;
+    cursor: pointer;
+}
+
+.admin-note {
+    font-size: 13px;
+    text-align: center;
+    margin-top: 10px;
+    color: #666;
+}
+</style>
+
 </head>
 <body>
+<div class="container">
 
-    <div class="container">
-        <h2>Welcome to Daily Saver</h2>
-
-        <div class="btn-grid">
-            <button onclick="window.location.href='wallet.html'">Wallet</button>
-            <button onclick="window.location.href='profile.html'">Profile</button>
-            <button onclick="window.location.href='history.html'">History</button>
-            <button class="logout" onclick="logoutUser()">Logout</button>
-        </div>
+    <!-- DAILY SAVING -->
+    <div class="card">
+        <div class="title">Daily Saving Amount</div>
+        <div class="value" id="dailyAmount">₹0</div>
+        <p class="admin-note">Admin can change this amount anytime</p>
     </div>
 
-    <script>
-        // -----------------------------------------
-        // 🔥 Firebase Config (Your Real Keys Added)
-        // -----------------------------------------
-        const firebaseConfig = {
-          apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
-          authDomain: "rojbachat-7e5a8.firebaseapp.com",
-          projectId: "rojbachat-7e5a8",
-          storageBucket: "rojbachat-7e5a8.firebasestorage.app",
-          messagingSenderId: "790739371754",
-          appId: "1:790739371754:web:9b0bd71f2579d664747993"
-        };
+    <!-- WALLET -->
+    <div class="card">
+        <div class="title">Your Wallet Balance</div>
+        <div class="value" id="walletBalance">₹0</div>
+    </div>
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
+    <!-- TODAY STATUS -->
+    <div class="card">
+        <div class="title">Today Saving Status</div>
+        <div class="value" id="todayStatus">Not Paid</div>
+    </div>
 
-        // -----------------------------------------
-        // 🛑 Logout Function  
-        // -----------------------------------------
-        function logoutUser() {
-            auth.signOut().then(() => {
-                window.location.href = "login.html";
-            }).catch((error) => {
-                alert("Error: " + error.message);
-            });
-        }
+    <!-- RAZORPAY LINK BUTTON -->
+    <button class="btn" id="payBtn">Pay Now</button>
 
-        // -----------------------------------------
-        // 🔐 Login Check (Stop unauth access)
-        // -----------------------------------------
-        auth.onAuthStateChanged(user => {
-            if (!user) {
-                window.location.href = "login.html";
+</div>
+
+<script>
+// ------------------------
+//  YOUR FIREBASE CONFIG
+// ------------------------
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC98Lxjn6jn-V9NQjcOGluL04EAX4kzpmY",
+  authDomain: "rojbachat-7e5a8.firebaseapp.com",
+  projectId: "rojbachat-7e5a8",
+  storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+  messagingSenderId: "790739371754",
+  appId: "1:790739371754:web:9b0bd71f2579d664747993"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ----------------------------------------
+// Fetch Admin Daily Amount + Razorpay Link
+// ----------------------------------------
+db.collection("admin").doc("settings").onSnapshot((doc) => {
+    if (doc.exists) {
+        document.getElementById("dailyAmount").innerText = "₹" + doc.data().dailyAmount;
+        window.razorpayLink = doc.data().razorpayLink;
+    }
+});
+
+// ----------------------------------------
+// Fetch User Wallet & Status
+// (Assume userId = phone auth user)
+// ----------------------------------------
+firebase.auth().onAuthStateChanged((user)=>{
+    if(user){
+        db.collection("users").doc(user.uid).onSnapshot((doc)=>{
+            if(doc.exists){
+                document.getElementById("walletBalance").innerText = "₹" + doc.data().wallet;
+                document.getElementById("todayStatus").innerText = doc.data().todayPaid ? "Paid" : "Not Paid";
             }
         });
-    </script>
+    }
+});
 
+// PAY BUTTON
+document.getElementById("payBtn").onclick = () => {
+    if(window.razorpayLink){
+        window.location.href = window.razorpayLink;
+    } else {
+        alert("Payment link not set by admin");
+    }
+};
+
+</script>
 </body>
 </html>
