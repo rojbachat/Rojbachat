@@ -1,104 +1,113 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Daily Saving - Roj Bachat</title>
+<title>Roj Bachat - Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- Google Font -->
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <style>
-body {
-    font-family: 'Poppins', sans-serif;
-    background: #f3f5ff;
-    margin: 0;
-    padding: 20px;
+body{
+    background:#f2f3fa;
+    font-family:'Poppins',sans-serif;
+    padding:20px;
 }
-
-.container {
-    max-width: 420px;
-    margin: auto;
+.header{
+    text-align:center;
+    font-size:26px;
+    font-weight:600;
+    margin-bottom:20px;
 }
-
-.card {
-    background: white;
-    padding: 20px;
-    border-radius: 18px;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
+.card{
+    background:white;
+    padding:20px;
+    border-radius:18px;
+    box-shadow:0 6px 14px rgba(0,0,0,0.07);
+    margin-bottom:20px;
 }
-
-.title {
-    font-size: 20px;
-    font-weight: 600;
-    margin-bottom: 5px;
+.balance-box{
+    font-size:30px;
+    font-weight:700;
+    text-align:center;
+    margin-top:10px;
 }
-
-.value {
-    font-size: 26px;
-    font-weight: 700;
-    color: #4a5cff;
+.btn{
+    width:100%;
+    padding:14px;
+    font-size:16px;
+    font-weight:600;
+    background:#007bff;
+    color:white;
+    border:none;
+    border-radius:12px;
+    margin-top:10px;
+    cursor:pointer;
 }
-
-.btn {
-    width: 100%;
-    background: #4a5cff;
-    color: white;
-    padding: 14px;
-    border: none;
-    border-radius: 14px;
-    font-size: 18px;
-    font-weight: 600;
-    margin-top: 10px;
-    cursor: pointer;
+.btn-red{
+    background:#ff3b30;
 }
-
-.admin-note {
-    font-size: 13px;
-    text-align: center;
-    margin-top: 10px;
-    color: #666;
+.btn-green{
+    background:#28a745;
+}
+.menu-title{
+    font-size:20px;
+    font-weight:600;
+    margin-bottom:10px;
+}
+.link-box{
+    padding:14px;
+    background:white;
+    border-radius:12px;
+    margin-bottom:12px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.06);
+    font-size:17px;
+    font-weight:500;
 }
 </style>
 
 </head>
 <body>
-<div class="container">
 
-    <!-- DAILY SAVING -->
-    <div class="card">
-        <div class="title">Daily Saving Amount</div>
-        <div class="value" id="dailyAmount">₹0</div>
-        <p class="admin-note">Admin can change this amount anytime</p>
+<h2 class="header">Roj Bachat Dashboard</h2>
+
+<div class="card">
+    <div style="font-size:18px;font-weight:500;">Wallet Balance</div>
+    <div id="balance" class="balance-box">₹0</div>
+</div>
+
+<div class="card">
+    <div class="menu-title">Daily Saving</div>
+    <button class="btn-green" onclick="openDailySaving()">Set Daily Saving</button>
+    <button class="btn" onclick="openPayNow()">Pay Today</button>
+</div>
+
+<div class="card">
+    <div class="menu-title">Wallet Options</div>
+    <button class="btn" onclick="openAddMoney()">Add Money</button>
+    <button class="btn-red" onclick="openWithdraw()">Withdraw Money</button>
+</div>
+
+<div class="card">
+    <div class="menu-title">More Options</div>
+
+    <div class="link-box" onclick="window.location='history.html'">
+        🔍 Transaction History
     </div>
 
-    <!-- WALLET -->
-    <div class="card">
-        <div class="title">Your Wallet Balance</div>
-        <div class="value" id="walletBalance">₹0</div>
+    <div class="link-box" onclick="window.location='group.html'">
+        👥 Group Saving
     </div>
 
-    <!-- TODAY STATUS -->
-    <div class="card">
-        <div class="title">Today Saving Status</div>
-        <div class="value" id="todayStatus">Not Paid</div>
+    <div class="link-box" onclick="window.location='profile.html'">
+        👤 User Profile
     </div>
-
-    <!-- RAZORPAY LINK BUTTON -->
-    <button class="btn" id="payBtn">Pay Now</button>
-
 </div>
 
 <script>
-// ------------------------
-//  YOUR FIREBASE CONFIG
-// ------------------------
-
 const firebaseConfig = {
   apiKey: "AIzaSyC98Lxjn6jn-V9NQjcOGluL04EAX4kzpmY",
   authDomain: "rojbachat-7e5a8.firebaseapp.com",
@@ -111,40 +120,40 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ----------------------------------------
-// Fetch Admin Daily Amount + Razorpay Link
-// ----------------------------------------
-db.collection("admin").doc("settings").onSnapshot((doc) => {
-    if (doc.exists) {
-        document.getElementById("dailyAmount").innerText = "₹" + doc.data().dailyAmount;
-        window.razorpayLink = doc.data().razorpayLink;
-    }
-});
-
-// ----------------------------------------
-// Fetch User Wallet & Status
-// (Assume userId = phone auth user)
-// ----------------------------------------
 firebase.auth().onAuthStateChanged((user)=>{
-    if(user){
-        db.collection("users").doc(user.uid).onSnapshot((doc)=>{
-            if(doc.exists){
-                document.getElementById("walletBalance").innerText = "₹" + doc.data().wallet;
-                document.getElementById("todayStatus").innerText = doc.data().todayPaid ? "Paid" : "Not Paid";
-            }
-        });
+    if(!user){
+        window.location.href="login.html";
+    } else{
+        loadBalance(user.uid);
     }
 });
 
-// PAY BUTTON
-document.getElementById("payBtn").onclick = () => {
-    if(window.razorpayLink){
-        window.location.href = window.razorpayLink;
-    } else {
-        alert("Payment link not set by admin");
-    }
-};
+function loadBalance(uid){
+    db.collection("users").doc(uid).onSnapshot(doc=>{
+        if(doc.exists){
+            let d = doc.data();
+            document.getElementById("balance").innerText = "₹"+(d.balance||0);
+        }
+    });
+}
+
+function openDailySaving(){
+    window.location="daily-saving.html";
+}
+
+function openPayNow(){
+    window.location="pay.html";
+}
+
+function openAddMoney(){
+    window.location="add-money.html";
+}
+
+function openWithdraw(){
+    window.location="withdraw.html";
+}
 
 </script>
+
 </body>
 </html>
