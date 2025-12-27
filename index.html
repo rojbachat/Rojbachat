@@ -1,59 +1,106 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Roj Bachat - Daily Saving</title>
+<title>Daily Saving - Roj Bachat</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body{font-family:Arial;background:#f2f2f2;margin:0;padding:0;}
-.header{background:#007bff;padding:18px;color:white;font-size:22px;text-align:center;}
-.card{background:white;padding:20px;border-radius:12px;box-shadow:0 2px 6px #0003;margin:20px;}
-input,button{width:100%;padding:14px;margin-top:10px;border-radius:10px;border:1px solid #ccc;font-size:16px;}
-button{background:#007bff;color:white;border:none;font-size:18px;}
-button:hover{opacity:0.9;}
-.fixed-btn{
-    position: fixed; bottom:20px; right:20px;
-    background:#007bff;color:white;padding:14px 20px;border-radius:50px;
-    font-size:18px;text-decoration:none;
-}
-.logout{
-    position:fixed; top:10px; right:10px;
-    background:red;color:white;padding:10px 15px;border-radius:8px;text-decoration:none;
-}
-</style>
-</head>
-<body>
 
-<div class="header">Roj Bachat</div>
-
-<a class="logout" href="#" onclick="logout()">Logout</a>
-
-<div class="card">
-    <h3>User Details</h3>
-    <p id="userEmail">Loading...</p>
-</div>
-
-<div class="card">
-    <h3>Daily Saving Setup</h3>
-
-    <label>Daily Saving Amount (₹)</label>
-    <input type="number" id="amount" placeholder="Enter amount">
-
-    <label>Your UPI ID</label>
-    <input type="text" id="upi" placeholder="example@upi">
-
-    <button onclick="startSaving()">Start Daily Auto Debit</button>
-</div>
-
-<a href="wallet.html" class="fixed-btn">Wallet</a>
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
+<style>
+body {
+    font-family: 'Poppins', sans-serif;
+    background: #f3f5ff;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 420px;
+    margin: auto;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 18px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.value {
+    font-size: 26px;
+    font-weight: 700;
+    color: #4a5cff;
+}
+
+.btn {
+    width: 100%;
+    background: #4a5cff;
+    color: white;
+    padding: 14px;
+    border: none;
+    border-radius: 14px;
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 10px;
+    cursor: pointer;
+}
+
+.admin-note {
+    font-size: 13px;
+    text-align: center;
+    margin-top: 10px;
+    color: #666;
+}
+</style>
+
+</head>
+<body>
+<div class="container">
+
+    <!-- DAILY SAVING -->
+    <div class="card">
+        <div class="title">Daily Saving Amount</div>
+        <div class="value" id="dailyAmount">₹0</div>
+        <p class="admin-note">Admin can change this amount anytime</p>
+    </div>
+
+    <!-- WALLET -->
+    <div class="card">
+        <div class="title">Your Wallet Balance</div>
+        <div class="value" id="walletBalance">₹0</div>
+    </div>
+
+    <!-- TODAY STATUS -->
+    <div class="card">
+        <div class="title">Today Saving Status</div>
+        <div class="value" id="todayStatus">Not Paid</div>
+    </div>
+
+    <!-- RAZORPAY LINK BUTTON -->
+    <button class="btn" id="payBtn">Pay Now</button>
+
+</div>
+
 <script>
-// 🔥 Firebase Config
+// ------------------------
+//  YOUR FIREBASE CONFIG
+// ------------------------
+
 const firebaseConfig = {
-  apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
+  apiKey: "AIzaSyC98Lxjn6jn-V9NQjcOGluL04EAX4kzpmY",
   authDomain: "rojbachat-7e5a8.firebaseapp.com",
   projectId: "rojbachat-7e5a8",
   storageBucket: "rojbachat-7e5a8.firebasestorage.app",
@@ -62,39 +109,42 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
+const db = firebase.firestore();
 
-// USER INFO
-auth.onAuthStateChanged(user=>{
-    if(!user){
-        window.location.href="login.html";
-    } else {
-        document.getElementById("userEmail").innerText = user.email;
+// ----------------------------------------
+// Fetch Admin Daily Amount + Razorpay Link
+// ----------------------------------------
+db.collection("admin").doc("settings").onSnapshot((doc) => {
+    if (doc.exists) {
+        document.getElementById("dailyAmount").innerText = "₹" + doc.data().dailyAmount;
+        window.razorpayLink = doc.data().razorpayLink;
     }
 });
 
-// LOGOUT
-function logout(){
-    auth.signOut().then(()=> window.location.href="login.html");
-}
-
-
-// DAILY AUTOPAY
-function startSaving(){
-    let amount = document.getElementById("amount").value;
-    let upi = document.getElementById("upi").value;
-
-    if(amount=="" || upi==""){
-        alert("Please fill all details");
-        return;
+// ----------------------------------------
+// Fetch User Wallet & Status
+// (Assume userId = phone auth user)
+// ----------------------------------------
+firebase.auth().onAuthStateChanged((user)=>{
+    if(user){
+        db.collection("users").doc(user.uid).onSnapshot((doc)=>{
+            if(doc.exists){
+                document.getElementById("walletBalance").innerText = "₹" + doc.data().wallet;
+                document.getElementById("todayStatus").innerText = doc.data().todayPaid ? "Paid" : "Not Paid";
+            }
+        });
     }
+});
 
-    // 🔥 यहाँ अपना Cashfree Hosted Autopay Link लगाना है
-    let hostedLink = "https://payments.cashfree.com/autoPay/YOUR_LINK_HERE";
+// PAY BUTTON
+document.getElementById("payBtn").onclick = () => {
+    if(window.razorpayLink){
+        window.location.href = window.razorpayLink;
+    } else {
+        alert("Payment link not set by admin");
+    }
+};
 
-    window.location.href = hostedLink + "?amount=" + amount + "&upi_id=" + upi;
-}
 </script>
-
 </body>
-    </html>
+</html>
