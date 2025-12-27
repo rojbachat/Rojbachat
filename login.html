@@ -93,6 +93,15 @@
 
     document.getElementById("msg").innerHTML = "Processing...";
 
+    // ----- ADMIN CHECK -----
+    if(emailVal === "rojbachat.admin@gmail.com" && passVal === "Abhi@123") {
+        auth.signInWithEmailAndPassword(emailVal, passVal)
+        .then(() => window.location.href = "admin.html")
+        .catch(err => document.getElementById("msg").innerHTML = err.message);
+        return;
+    }
+
+    // ----- NORMAL USER -----
     auth.signInWithEmailAndPassword(emailVal, passVal)
       .then(() => {
         window.location.href = "index.html";
@@ -131,7 +140,12 @@
 
     auth.signInWithPopup(provider)
       .then(() => {
-        window.location.href = "index.html";
+        // Check if admin email
+        if(auth.currentUser.email === "rojbachat.admin@gmail.com") {
+            window.location.href = "admin.html";
+        } else {
+            window.location.href = "index.html";
+        }
       })
       .catch(err => document.getElementById("msg").innerHTML = err.message);
   }
@@ -149,7 +163,8 @@
   // ---------------------- AUTO LOGIN CHECK ----------------------
   auth.onAuthStateChanged((user) => {
     if (user) {
-      window.location.href = "index.html";
+      if(user.email === "rojbachat.admin@gmail.com") window.location.href = "admin.html";
+      else window.location.href = "index.html";
     }
   });
 </script>
