@@ -4,107 +4,34 @@
 <title>Roj Bachat - Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body{
-    background:#f2f3fa;
-    font-family:'Poppins',sans-serif;
-    padding:20px;
-}
-.header{
-    text-align:center;
-    font-size:26px;
-    font-weight:600;
-    margin-bottom:20px;
-}
-.card{
-    background:white;
-    padding:20px;
-    border-radius:18px;
-    box-shadow:0 6px 14px rgba(0,0,0,0.07);
-    margin-bottom:20px;
-}
-.balance-box{
-    font-size:30px;
-    font-weight:700;
-    text-align:center;
-    margin-top:10px;
-}
-.btn{
-    width:100%;
-    padding:14px;
-    font-size:16px;
-    font-weight:600;
-    background:#007bff;
-    color:white;
-    border:none;
-    border-radius:12px;
-    margin-top:10px;
-    cursor:pointer;
-}
-.btn-red{
-    background:#ff3b30;
-}
-.btn-green{
-    background:#28a745;
-}
-.menu-title{
-    font-size:20px;
-    font-weight:600;
-    margin-bottom:10px;
-}
-.link-box{
-    padding:14px;
-    background:white;
-    border-radius:12px;
-    margin-bottom:12px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.06);
-    font-size:17px;
-    font-weight:500;
-}
+body{font-family:Arial;background:#f4f6ff;padding:20px;}
+.card{background:white;padding:15px;margin-top:15px;border-radius:15px;box-shadow:0 4px 10px rgba(0,0,0,0.08);}
+.menu a{display:block;background:#4c6ef5;color:white;text-align:center;padding:14px;margin-top:10px;border-radius:10px;text-decoration:none;font-size:18px;}
 </style>
 
 </head>
 <body>
 
-<h2 class="header">Roj Bachat Dashboard</h2>
+<h2>Welcome to Roj Bachat</h2>
 
 <div class="card">
-    <div style="font-size:18px;font-weight:500;">Wallet Balance</div>
-    <div id="balance" class="balance-box">₹0</div>
+    <h3>Your Daily Saving: ₹<span id="dailyAmt">0</span></h3>
+    <h3>Wallet Balance: ₹<span id="bal">0</span></h3>
 </div>
 
-<div class="card">
-    <div class="menu-title">Daily Saving</div>
-    <button class="btn-green" onclick="openDailySaving()">Set Daily Saving</button>
-    <button class="btn" onclick="openPayNow()">Pay Today</button>
-</div>
-
-<div class="card">
-    <div class="menu-title">Wallet Options</div>
-    <button class="btn" onclick="openAddMoney()">Add Money</button>
-    <button class="btn-red" onclick="openWithdraw()">Withdraw Money</button>
-</div>
-
-<div class="card">
-    <div class="menu-title">More Options</div>
-
-    <div class="link-box" onclick="window.location='history.html'">
-        🔍 Transaction History
-    </div>
-
-    <div class="link-box" onclick="window.location='group.html'">
-        👥 Group Saving
-    </div>
-
-    <div class="link-box" onclick="window.location='profile.html'">
-        👤 User Profile
-    </div>
+<div class="menu">
+    <a href="daily-saving.html">Daily Saving Setup</a>
+    <a href="pay.html">Daily Payment</a>
+    <a href="add-money.html">Add Money</a>
+    <a href="withdraw.html">Withdraw</a>
+    <a href="history.html">History</a>
+    <a href="group.html">Groups</a>
+    <a href="profile.html">Profile</a>
 </div>
 
 <script>
@@ -118,41 +45,17 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 const db = firebase.firestore();
 
-firebase.auth().onAuthStateChanged((user)=>{
-    if(!user){
-        window.location.href="login.html";
-    } else{
-        loadBalance(user.uid);
-    }
+auth.onAuthStateChanged(async user=>{
+    if(!user){ window.location="login.html"; return; }
+
+    let data = await db.collection("users").doc(user.uid).get();
+
+    document.getElementById("dailyAmt").innerText = data.data().dailySaving;
+    document.getElementById("bal").innerText = data.data().balance;
 });
-
-function loadBalance(uid){
-    db.collection("users").doc(uid).onSnapshot(doc=>{
-        if(doc.exists){
-            let d = doc.data();
-            document.getElementById("balance").innerText = "₹"+(d.balance||0);
-        }
-    });
-}
-
-function openDailySaving(){
-    window.location="daily-saving.html";
-}
-
-function openPayNow(){
-    window.location="pay.html";
-}
-
-function openAddMoney(){
-    window.location="add-money.html";
-}
-
-function openWithdraw(){
-    window.location="withdraw.html";
-}
-
 </script>
 
 </body>
