@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>History - Roj Bachat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        .item {
+            background: #fff; padding: 15px; border-radius: 8px;
+            margin-bottom: 10px; box-shadow: 0 0 5px #ccc;
+        }
+        .green { color: green; }
+        .red { color: red; }
+    </style>
+</head>
+<body>
+
+<h2>Transaction History</h2>
+
+<div id="list"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
+  authDomain: "rojbachat-7e5a8.firebaseapp.com",
+  projectId: "rojbachat-7e5a8",
+  storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+  messagingSenderId: "790739371754",
+  appId: "1:790739371754:web:9b0bd71f2579d664747993"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+auth.onAuthStateChanged(user=>{
+    if(!user) window.location="login.html";
+    else loadHistory();
+});
+
+function loadHistory(){
+    db.collection("transactions")
+    .where("uid","==",auth.currentUser.uid)
+    .orderBy("timestamp","desc")
+    .onSnapshot(snapshot=>{
+        let html = "";
+        snapshot.forEach(doc=>{
+            let d = doc.data();
+            html += `
+                <div class="item">
+                    <b>${d.type == "add_money" ? "Add Money" : "Withdraw"}</b><br>
+                    Amount: ₹${d.amount}<br>
+                    Status: <span class="${d.status=='success'?'green':'red'}">${d.status}</span><br>
+                </div>
+            `;
+        });
+        document.getElementById("list").innerHTML = html;
+    });
+}
+</script>
+
+</body>
+</html>
