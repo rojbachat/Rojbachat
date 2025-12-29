@@ -1,108 +1,145 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Daily Saving - Add Money</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Add Money - Roj Bachat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-<!-- Razorpay -->
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <!-- Razorpay -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
+  <style>
+    body { font-family: Arial; padding:20px; background:#f5f5f5; }
+    .box { background:white; padding:20px; border-radius:10px;
+           max-width:400px; margin:auto; box-shadow:0 0 10px #0002; }
+    input, button {
+      width:100%; padding:12px; margin-top:10px; font-size:16px;
+      border-radius:5px; border:1px solid #ccc;
+    }
+    button { background:black; color:white; border:none; }
+    #walletBox{font-size:20px; font-weight:bold; margin-bottom:10px;}
+  </style>
 </head>
+
 <body>
 
-<h2>Your Wallet: <span id="walletBalance">₹0</span></h2>
+<div class="box">
+  <h2>Add Money</h2>
 
-<input type="number" id="amount" placeholder="Enter Amount" />
-<button onclick="startPayment()">Add Money</button>
+  <div id="walletBox">Wallet: ₹0</div>
+
+  <input type="number" id="amount" placeholder="Enter Amount">
+
+  <button onclick="startPayment()">Add Money</button>
+
+  <p id="msg" style="color:red;"></p>
+</div>
+
 
 <script>
-// ---------------- FIREBASE CONFIG ----------------
-const firebaseConfig = {
-  apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
-  authDomain: "rojbachat-7e5a8.firebaseapp.com",
-  projectId: "rojbachat-7e5a8",
-  storageBucket: "rojbachat-7e5a8.firebasestorage.app",
-  messagingSenderId: "790739371754",
-  appId: "1:790739371754:web:9b0bd71f2579d664747993"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-// 👉 Example User ID (same use karo)
-const USER_ID = "user001";
-
-
-// ------------ FETCH CURRENT WALLET BALANCE --------------
-function loadWallet() {
-  db.collection("wallets").doc(USER_ID).get().then(doc => {
-    if (doc.exists) {
-      document.getElementById("walletBalance").innerText = "₹" + doc.data().balance;
-    } else {
-      document.getElementById("walletBalance").innerText = "₹0";
-    }
-  });
-}
-loadWallet();
-
-
-// -------------------- PAYMENT ---------------------------
-function startPayment() {
-  let amount = document.getElementById("amount").value;
-
-  if (!amount || amount <= 0) {
-    alert("Enter valid amount");
-    return;
-  }
-
-  amount = parseInt(amount);
-
-  var options = {
-    "key": "rzp_test_RxG5pumybpuVqy",  // <-- yaha apna Razorpay Key ID daalna
-    "amount": amount * 100,
-    "currency": "INR",
-    "name": "Daily Saving",
-    "description": "Add Money",
-    
-    "handler": function (response) {
-        // Payment success → Save in Firebase
-        updateWallet(amount);
-    }
+  // ------------------ FIREBASE CONFIG ------------------
+  const firebaseConfig = {
+    apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
+    authDomain: "rojbachat-7e5a8.firebaseapp.com",
+    projectId: "rojbachat-7e5a8",
+    storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+    messagingSenderId: "790739371754",
+    appId: "1:790739371754:web:9b0bd71f2579d664747993"
   };
 
-  var rzp1 = new Razorpay(options);
-  rzp1.open();
-}
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
+  let uid = null;
 
-// ------------------ UPDATE WALLET -----------------------
-function updateWallet(amountAdd) {
-
-  const walletRef = db.collection("wallets").doc(USER_ID);
-
-  walletRef.get().then(doc => {
-    let newBalance = amountAdd;
-
-    if (doc.exists) {
-      newBalance = doc.data().balance + amountAdd;
+  // ------------------ USER CHECK ------------------
+  auth.onAuthStateChanged(user => {
+    if (!user) {
+      window.location.href = "login.html";
+    } else {
+      uid = user.uid;
+      loadWallet();
     }
-
-    walletRef.set({
-      balance: newBalance,
-      lastAdded: amountAdd,
-      updatedAt: new Date()
-    })
-    .then(() => {
-      alert("Money Added Successfully!");
-      loadWallet();   // Refresh Wallet
-    });
   });
 
-}
+  // ------------------ LOAD WALLET BALANCE ------------------
+  function loadWallet() {
+    db.collection("users").doc(uid).onSnapshot(doc => {
+      if (doc.exists) {
+        let bal = doc.data().wallet || 0;
+        document.getElementById("walletBox").innerHTML = "Wallet: ₹" + bal;
+      }
+    });
+  }
+
+  // ------------------ START PAYMENT ------------------
+  function startPayment() {
+    let amount = document.getElementById("amount").value;
+    if (amount < 10) {
+      document.getElementById("msg").innerHTML = "Amount must be ₹10 or more";
+      return;
+    }
+
+    let options = {
+      "key": "rzp_test_RxG5pumybpuVqy",
+      "amount": amount * 100,
+      "currency": "INR",
+      "name": "Roj Bachat",
+      "description": "Add Money",
+
+      "handler": function (response) {
+        saveSuccess(amount, response.razorpay_payment_id);
+      },
+
+      "prefill": { "email": auth.currentUser.email }
+    };
+
+    var rzp = new Razorpay(options);
+
+    rzp.on('payment.failed', function () {
+      document.getElementById("msg").innerHTML = "Payment Failed!";
+    });
+
+    rzp.open();
+  }
+
+  // ------------------ SAVE SUCCESS ------------------
+  function saveSuccess(amount, paymentId) {
+
+    let userRef = db.collection("users").doc(uid);
+
+    db.runTransaction(async (t) => {
+      const doc = await t.get(userRef);
+      let oldBal = doc.exists ? doc.data().wallet || 0 : 0;
+      let newBal = oldBal + Number(amount);
+
+      t.update(userRef, { wallet: newBal });
+
+      // History entry
+      let historyRef = userRef.collection("history").doc();
+      t.set(historyRef, {
+        type: "add_money",
+        amount: Number(amount),
+        paymentId: paymentId,
+        time: new Date().toISOString()
+      });
+
+    })
+    .then(() => {
+      document.getElementById("msg").style.color = "green";
+      document.getElementById("msg").innerHTML = "Payment Success!";
+    })
+    .catch(err => {
+      console.error(err);
+      document.getElementById("msg").innerHTML = "Error saving payment!";
+    });
+  }
+
 </script>
 
 </body>
