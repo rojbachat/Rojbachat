@@ -3,6 +3,7 @@
 <head>
 <title>Trading - Roj Bachat</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
 body{
     margin:0;
@@ -221,7 +222,8 @@ function buyNow(){
         let price = doc.data().price;
         let cost = qtyVal * price;
 
-        db.collection("wallets").doc(uid).get().then(w=>{
+        let walletRef = db.collection("wallets").doc(uid);
+        walletRef.get().then(w=>{
             let bal = w.exists ? w.data().balance : 0;
 
             if(bal < cost){
@@ -230,7 +232,7 @@ function buyNow(){
             }
 
             // Deduct wallet
-            db.collection("wallets").doc(uid).update({ balance: bal - cost });
+            walletRef.update({ balance: bal - cost });
 
             // Update holdings
             let ref = db.collection("holdings").doc(uid).collection("items").doc(item);
@@ -257,7 +259,6 @@ function sellNow(){
     if(qtyVal <= 0){ alert("Enter valid KG"); return; }
 
     let item = document.getElementById("commodity").value;
-
     let ref = db.collection("holdings").doc(uid).collection("items").doc(item);
     ref.get().then(h=>{
         if(!h.exists || h.data().qty < qtyVal){
@@ -279,9 +280,10 @@ function sellNow(){
             let price = c.data().price;
             let credit = qtyVal * price;
 
-            db.collection("wallets").doc(uid).get().then(w=>{
+            let walletRef = db.collection("wallets").doc(uid);
+            walletRef.get().then(w=>{
                 let bal = w.exists ? w.data().balance : 0;
-                db.collection("wallets").doc(uid).update({ balance: bal + credit });
+                walletRef.update({ balance: bal + credit });
                 alert("Sold Successfully!");
                 loadHoldings();
             });
@@ -329,4 +331,4 @@ async function loadHoldings(){
 </script>
 
 </body>
-    </html>
+</html>
