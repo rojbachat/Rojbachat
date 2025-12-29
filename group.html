@@ -1,87 +1,240 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Groups - Roj Bachat</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Commodity Trading - Roj Bachat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-    <style>
-        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
-        .box { padding: 20px; background: #fff; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 0 5px #ccc; }
-        input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #aaa; }
-        button { background: #007bff; color:#fff; border:none; }
-        .item { background:#fff; padding:15px; margin-bottom:10px; border-radius:8px; box-shadow:0 0 5px #ccc; }
-    </style>
+  <style>
+    body { font-family: Arial; background:#f5f5f5; padding:15px; }
+    h2 { text-align:center; }
+    .box { background:white; padding:15px; margin-top:10px; border-radius:10px; box-shadow:0 0 10px #0002; }
+    button { padding:10px 15px; border:none; border-radius:5px; margin-left:5px; cursor:pointer; }
+    .buy { background:#28a745; color:white; }
+    .sell { background:#dc3545; color:white; }
+    #wallet { font-size:18px; font-weight:bold; margin-bottom:10px; }
+    .profit { color:green; }
+    .loss { color:red; }
+  </style>
 </head>
+
 <body>
 
-<h2>Groups</h2>
+<h2>Commodity Trading</h2>
+<div id="wallet">Wallet: ₹0</div>
 
-<div class="box">
-    <h3>Create Group</h3>
-    <input type="text" id="groupName" placeholder="Enter group name">
-    <button onclick="createGroup()">Create</button>
-</div>
+<h3>Your Holdings</h3>
+<div id="holdingsList"></div>
 
-<h3>Your Groups</h3>
-<div id="groupList"></div>
+<h3>Available Commodities</h3>
+<div id="commodityList"></div>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
-  authDomain: "rojbachat-7e5a8.firebaseapp.com",
-  projectId: "rojbachat-7e5a8",
-  storageBucket: "rojbachat-7e5a8.firebasestorage.app",
-  messagingSenderId: "790739371754",
-  appId: "1:790739371754:web:9b0bd71f2579d664747993"
-};
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+  // ---------------- FIREBASE CONFIG ----------------
+  const firebaseConfig = {
+    apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
+    authDomain: "rojbachat-7e5a8.firebaseapp.com",
+    projectId: "rojbachat-7e5a8",
+    storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+    messagingSenderId: "790739371754",
+    appId: "1:790739371754:web:9b0bd71f2579d664747993"
+  };
 
-auth.onAuthStateChanged(user=>{
-    if(!user) window.location="login.html";
-    else loadGroups();
-});
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-function createGroup(){
-    let name = groupName.value.trim();
-    if(name.length < 3){
-        alert("Enter valid group name");
-        return;
-    }
+  let uid = null;
 
-    db.collection("groups").add({
-        name: name,
-        owner: auth.currentUser.uid,
-        members: [auth.currentUser.uid],
-        created: Date.now()
+
+  // ---------------- USER LOGIN CHECK ----------------
+  auth.onAuthStateChanged(user => {
+    if (!user) window.location.href = "login.html";
+    uid = user.uid;
+    loadWallet();
+    loadHoldings();
+    loadCommodities();
+  });
+
+  
+  // ---------------- LOAD WALLET ----------------
+  function loadWallet() {
+    db.collection("users").doc(uid).onSnapshot(doc => {
+      let bal = doc.data().wallet || 0;
+      document.getElementById("wallet").innerHTML = "Wallet: ₹" + bal;
     });
+  }
 
-    alert("Group created!");
-}
 
-function loadGroups(){
-    db.collection("groups")
-    .where("members","array-contains",auth.currentUser.uid)
-    .onSnapshot(snap=>{
-        let html="";
-        snap.forEach(doc=>{
-            let g=doc.data();
-            html += `
-                <div class="item">
-                    <b>${g.name}</b><br>
-                    Members: ${g.members.length}
-                </div>
-            `;
+  // ---------------- LOAD HOLDINGS ----------------
+  function loadHoldings() {
+    db.collection("users").doc(uid).collection("holdings")
+      .onSnapshot(snap => {
+
+        let html = "";
+
+        snap.forEach(doc => {
+          let d = doc.data();
+
+          html += `
+            <div class="box">
+              <b>${doc.id.toUpperCase()}</b><br>
+              Quantity: ${d.quantity} KG<br>
+              Avg Price: ₹${d.avgPrice}<br>
+              <span id="profit_${doc.id}"></span>
+            </div>
+          `;
         });
-        groupList.innerHTML = html;
+
+        document.getElementById("holdingsList").innerHTML = html;
+      });
+  }
+
+
+  // ---------------- LOAD COMMODITIES ----------------
+  function loadCommodities() {
+    db.collection("commodities").onSnapshot(snap => {
+
+      let html = "";
+
+      snap.forEach(doc => {
+        let d = doc.data();
+
+        html += `
+          <div class="box">
+            <b>${d.name}</b><br>
+            Price: ₹${d.price} / KG<br><br>
+
+            <button class="buy" onclick="buyCommodity('${doc.id}', '${d.name}', ${d.price})">BUY</button>
+            <button class="sell" onclick="sellCommodity('${doc.id}', '${d.name}', ${d.price})">SELL</button>
+          </div>
+        `;
+      });
+
+      document.getElementById("commodityList").innerHTML = html;
+
+      updateProfitLoss();
     });
-}
+  }
+
+
+  // ---------------- BUY COMMODITY ----------------
+  async function buyCommodity(id, name, price) {
+    let qty = prompt("Enter quantity in KG:");
+    if (!qty || qty <= 0) return;
+
+    qty = Number(qty);
+    let cost = qty * price;
+
+    let userRef = db.collection("users").doc(uid);
+    let holdRef = userRef.collection("holdings").doc(id);
+
+    await db.runTransaction(async t => {
+
+      let userDoc = await t.get(userRef);
+
+      let wallet = userDoc.data().wallet || 0;
+
+      if (wallet < cost) {
+        alert("Not enough wallet balance!");
+        return;
+      }
+
+      t.update(userRef, { wallet: wallet - cost });
+
+      let holdDoc = await t.get(holdRef);
+
+      if (!holdDoc.exists) {
+        t.set(holdRef, {
+          quantity: qty,
+          avgPrice: price
+        });
+      } else {
+        let oldQty = holdDoc.data().quantity;
+        let oldAvg = holdDoc.data().avgPrice;
+
+        let newQty = oldQty + qty;
+        let newAvg = ((oldQty * oldAvg) + (qty * price)) / newQty;
+
+        t.update(holdRef, {
+          quantity: newQty,
+          avgPrice: newAvg
+        });
+      }
+
+    });
+
+    alert("Purchased Successfully!");
+  }
+
+
+  // ---------------- SELL COMMODITY ----------------
+  async function sellCommodity(id, name, price) {
+    let qty = prompt("Enter quantity in KG:");
+    if (!qty || qty <= 0) return;
+
+    qty = Number(qty);
+
+    let userRef = db.collection("users").doc(uid);
+    let holdRef = userRef.collection("holdings").doc(id);
+
+    await db.runTransaction(async t => {
+
+      let holdDoc = await t.get(holdRef);
+      if (!holdDoc.exists || holdDoc.data().quantity < qty) {
+        alert("You don't have enough quantity!");
+        return;
+      }
+
+      let oldQty = holdDoc.data().quantity;
+      let newQty = oldQty - qty;
+
+      let credit = qty * price;
+
+      let userDoc = await t.get(userRef);
+      let wallet = userDoc.data().wallet || 0;
+
+      t.update(userRef, { wallet: wallet + credit });
+
+      if (newQty == 0) t.delete(holdRef);
+      else t.update(holdRef, { quantity: newQty });
+
+    });
+
+    alert("Sold Successfully!");
+  }
+
+
+  // ---------------- PROFIT / LOSS ----------------
+  function updateProfitLoss() {
+
+    db.collection("users").doc(uid).collection("holdings")
+      .get().then(holdSnap => {
+
+        holdSnap.forEach(async doc => {
+          let id = doc.id;
+          let h = doc.data();
+
+          let comm = await db.collection("commodities").doc(id).get();
+          let price = comm.data().price;
+
+          let profit = (price - h.avgPrice) * h.quantity;
+
+          let el = document.getElementById("profit_" + id);
+
+          el.innerHTML = "P/L: " + profit.toFixed(2);
+
+          el.className = profit >= 0 ? "profit" : "loss";
+        });
+
+      });
+  }
+
 </script>
 
 </body>
