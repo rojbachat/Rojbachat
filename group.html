@@ -1,279 +1,218 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Commodity Trading - Roj Bachat</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-  <style>
-    body { font-family: Arial; background:#f5f5f5; padding:15px; }
-    h2 { text-align:center; }
-
-    .top-box{
-      background:white;padding:15px;border-radius:10px;
-      box-shadow:0 0 10px #0002;margin-bottom:15px;
-    }
-
-    .box {
-      background:white; padding:15px; margin-top:10px;
-      border-radius:10px; box-shadow:0 0 10px #0002;
-    }
-
-    button { padding:10px 15px; border:none; border-radius:5px; margin-left:5px; cursor:pointer; }
-    .buy { background:#28a745; color:white; }
-    .sell { background:#dc3545; color:white; }
-
-    #wallet { font-size:18px; font-weight:bold; }
-    #investment { font-size:18px; margin-top:5px; }
-
-    .profit { color:green; font-weight:bold; }
-    .loss { color:red; font-weight:bold; }
-  </style>
+<title>Trading - Roj Bachat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{
+    margin:0;font-family:Arial;background:#f4f6f9;
+}
+.header{
+    background:#007bff;padding:18px;color:white;
+    text-align:center;font-size:22px;font-weight:bold;
+}
+.card{
+    background:white;margin:15px;padding:20px;
+    border-radius:12px;box-shadow:0 2px 6px #0002;
+}
+.label{font-size:16px;margin-bottom:6px;}
+.input{
+    width:100%;padding:10px;font-size:16px;
+    border:1px solid #ccc;border-radius:8px;margin-top:5px;
+}
+.btn{
+    width:48%;padding:12px;font-size:18px;margin-top:15px;
+    border-radius:10px;border:none;color:white;
+}
+.buy-btn{background:#28a745;}
+.sell-btn{background:#dc3545;}
+.row{display:flex;justify-content:space-between;}
+.price{color:#007bff;font-weight:bold;font-size:20px;}
+.holding-box{
+    background:#fff;padding:15px;border-radius:12px;
+    box-shadow:0 2px 5px #0002;margin-top:15px;
+}
+.h-item{padding:8px 0;border-bottom:1px solid #ddd;font-size:16px;}
+</style>
 </head>
 
 <body>
 
-<h2>Commodity Trading</h2>
+<div class="header">Trading Market</div>
 
-<div class="top-box">
-  <div id="wallet">Wallet: ₹0</div>
-  <div id="investment">Total Investment: ₹0</div>
+<div class="card">
+    <label class="label">Select Commodity</label>
+    <select id="commodity" class="input"></select>
+
+    <p class="price" id="currentPrice">Price: ₹0</p>
+
+    <label class="label">Quantity (KG)</label>
+    <input type="number" id="qty" class="input" placeholder="Enter KG">
+
+    <div class="row">
+        <button class="btn buy-btn" onclick="buyNow()">BUY</button>
+        <button class="btn sell-btn" onclick="sellNow()">SELL</button>
+    </div>
 </div>
 
-<h3>Your Holdings</h3>
-<div id="holdingsList"></div>
+<div class="card holding-box">
+    <h3>Your Holdings</h3>
+    <div id="holdings">No holdings yet</div>
 
-<h3>Available Commodities</h3>
-<div id="commodityList"></div>
+    <h3 style="margin-top:15px;">Profit / Loss</h3>
+    <h2 id="plValue">₹0.00</h2>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
+// ------------------ FIREBASE CONFIG ------------------
+const firebaseConfig = {
+    apiKey: "XXXX",
+    authDomain: "XXXX",
+    projectId: "XXXX",
+    storageBucket: "XXXX",
+    messagingSenderId: "XXXX",
+    appId: "XXXX"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-  // ---------------- FIREBASE CONFIG ----------------
-  const firebaseConfig = {
-    apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
-    authDomain: "rojbachat-7e5a8.firebaseapp.com",
-    projectId: "rojbachat-7e5a8",
-    storageBucket: "rojbachat-7e5a8.firebasestorage.app",
-    messagingSenderId: "790739371754",
-    appId: "1:790739371754:web:9b0bd71f2579d664747993"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-
-  let uid = null;
-
-  // ---------------- USER LOGIN CHECK ----------------
-  auth.onAuthStateChanged(user => {
-    if (!user) window.location.href = "login.html";
-    uid = user.uid;
-    loadWallet();
-    loadHoldings();
+// ---------------- USER LOGIN CHECK ----------------
+firebase.auth().onAuthStateChanged(user => {
+    if (!user) { window.location.href = "index.html"; return; }
+    window.uid = user.uid;
     loadCommodities();
-  });
+    loadHoldings();
+});
 
-  
-  // ---------------- LOAD WALLET ----------------
-  function loadWallet() {
-    db.collection("users").doc(uid).onSnapshot(doc => {
-      let bal = doc.data().wallet || 0;
-      document.getElementById("wallet").innerHTML = "Wallet: ₹" + bal;
-    });
-  }
-
-
-  // ---------------- LOAD HOLDINGS ----------------
-  function loadHoldings() {
-    db.collection("users").doc(uid).collection("holdings")
-      .onSnapshot(snap => {
-
-        let html = "";
-        let totalInvestment = 0;
-
-        snap.forEach(doc => {
-          let d = doc.data();
-
-          let itemInvestment = d.quantity * d.avgPrice;
-          totalInvestment += itemInvestment;
-
-          html += `
-            <div class="box">
-              <b>${doc.id.toUpperCase()}</b><br>
-              Quantity: ${d.quantity} KG<br>
-              Avg Price: ₹${d.avgPrice}<br>
-              Investment: ₹${itemInvestment}<br>
-              Buy Date: ${d.buyDate}<br>
-              <div id="profit_${doc.id}"></div>
-            </div>
-          `;
-        });
-
-        document.getElementById("holdingsList").innerHTML = html;
-        document.getElementById("investment").innerHTML = "Total Investment: ₹" + totalInvestment;
-
-        updateProfitLoss();
-      });
-  }
-
-
-  // ---------------- LOAD COMMODITIES ----------------
-  function loadCommodities() {
+// ---------------- LOAD COMMODITIES ----------------
+function loadCommodities() {
     db.collection("commodities").onSnapshot(snap => {
-
-      let html = "";
-
-      snap.forEach(doc => {
-        let d = doc.data();
-
-        html += `
-          <div class="box">
-            <b>${d.name}</b><br>
-            Price: ₹${d.price} / KG<br><br>
-
-            <button class="buy" onclick="buyCommodity('${doc.id}', '${d.name}', ${d.price})">BUY</button>
-            <button class="sell" onclick="sellCommodity('${doc.id}', '${d.name}', ${d.price})">SELL</button>
-          </div>
-        `;
-      });
-
-      document.getElementById("commodityList").innerHTML = html;
-      updateProfitLoss();
-    });
-  }
-
-
-
-  // ---------------- BUY COMMODITY ----------------
-  async function buyCommodity(id, name, price) {
-
-    let qty = prompt("Enter quantity in KG:");
-    if (!qty || qty <= 0) return;
-    qty = Number(qty);
-
-    let cost = qty * price;
-
-    let buyDate = new Date();
-    let formattedDate =
-      String(buyDate.getDate()).padStart(2,'0') + "-" +
-      String(buyDate.getMonth()+1).padStart(2,'0') + "-" +
-      buyDate.getFullYear();
-
-    let userRef = db.collection("users").doc(uid);
-    let holdRef = userRef.collection("holdings").doc(id);
-
-    await db.runTransaction(async t => {
-
-      let userDoc = await t.get(userRef);
-      let wallet = userDoc.data().wallet || 0;
-
-      if (wallet < cost) {
-        alert("Not enough wallet balance!");
-        return;
-      }
-
-      t.update(userRef, { wallet: wallet - cost });
-
-      let holdDoc = await t.get(holdRef);
-
-      if (!holdDoc.exists) {
-        t.set(holdRef, {
-          quantity: qty,
-          avgPrice: price,
-          buyDate: formattedDate
+        let html = "";
+        snap.forEach(doc => {
+            html += `<option value="${doc.id}">${doc.id}</option>`;
         });
-      } else {
-        let oldQty = holdDoc.data().quantity;
-        let oldAvg = holdDoc.data().avgPrice;
+        document.getElementById("commodity").innerHTML = html;
+        updatePrice();
+    });
+}
 
-        let newQty = oldQty + qty;
-        let newAvg = ((oldQty * oldAvg) + (qty * price)) / newQty;
+document.getElementById("commodity").addEventListener("change", updatePrice);
 
-        t.update(holdRef, {
-          quantity: newQty,
-          avgPrice: newAvg,
-          buyDate: formattedDate
+function updatePrice() {
+    let name = document.getElementById("commodity").value;
+    db.collection("commodities").doc(name).get().then(d => {
+        document.getElementById("currentPrice").innerHTML = "Price: ₹" + d.data().price;
+    });
+}
+
+// ---------------- BUY FUNCTION ----------------
+function buyNow(){
+    let qty = Number(document.getElementById("qty").value);
+    if(qty<=0){ alert("Enter valid KG"); return; }
+
+    let name = commodity.value;
+
+    db.collection("commodities").doc(name).get().then(doc=>{
+        let price = doc.data().price;
+        let cost = qty * price;
+
+        // Wallet check
+        db.collection("wallets").doc(uid).get().then(w=>{
+            let bal = w.data().balance;
+
+            if(bal < cost){
+                alert("Not enough balance");
+                return;
+            }
+
+            // Deduct wallet
+            db.collection("wallets").doc(uid).update({
+                balance: bal - cost
+            });
+
+            // Add holding
+            db.collection("holdings").doc(uid).collection("items").doc(name).get().then(h=>{
+                let oldQty = h.exists ? h.data().qty : 0;
+                db.collection("holdings").doc(uid).collection("items").doc(name).set({
+                    qty: oldQty + qty
+                });
+            });
+
+            alert("Bought Successfully!");
         });
-      }
-
     });
+}
 
-    alert("Purchased Successfully!");
-  }
+// ---------------- SELL FUNCTION ----------------
+function sellNow(){
+    let qty = Number(document.getElementById("qty").value);
+    if(qty<=0){ alert("Enter valid KG"); return; }
 
+    let name = commodity.value;
 
+    db.collection("holdings").doc(uid).collection("items").doc(name).get().then(h=>{
+        if(!h.exists || h.data().qty < qty){
+            alert("Not enough quantity!");
+            return;
+        }
 
-  // ---------------- SELL COMMODITY ----------------
-  async function sellCommodity(id, name, price) {
+        let remaining = h.data().qty - qty;
 
-    let qty = prompt("Enter quantity in KG:");
-    if (!qty || qty <= 0) return;
-
-    qty = Number(qty);
-
-    let userRef = db.collection("users").doc(uid);
-    let holdRef = userRef.collection("holdings").doc(id);
-
-    await db.runTransaction(async t => {
-
-      let holdDoc = await t.get(holdRef);
-
-      if (!holdDoc.exists || holdDoc.data().quantity < qty) {
-        alert("You don't have enough quantity!");
-        return;
-      }
-
-      let oldQty = holdDoc.data().quantity;
-      let newQty = oldQty - qty;
-
-      let credit = qty * price;
-
-      let userDoc = await t.get(userRef);
-      let wallet = userDoc.data().wallet || 0;
-
-      t.update(userRef, { wallet: wallet + credit });
-
-      if (newQty == 0) {
-        t.delete(holdRef);
-      } else {
-        t.update(holdRef, { quantity: newQty });
-      }
-
-    });
-
-    alert("Sold Successfully!");
-  }
-
-
-
-  // ---------------- PROFIT / LOSS ----------------
-  function updateProfitLoss() {
-
-    db.collection("users").doc(uid).collection("holdings")
-      .get().then(holdSnap => {
-
-        holdSnap.forEach(async doc => {
-          let id = doc.id;
-          let h = doc.data();
-
-          let comm = await db.collection("commodities").doc(id).get();
-          let price = comm.data().price;
-
-          let profit = (price - h.avgPrice) * h.quantity;
-
-          let el = document.getElementById("profit_" + id);
-
-          el.innerHTML = "P/L: " + profit.toFixed(2);
-          el.className = profit >= 0 ? "profit" : "loss";
+        // Update new qty
+        db.collection("holdings").doc(uid).collection("items").doc(name).update({
+            qty: remaining
         });
 
-      });
-  }
+        // Add money to wallet
+        db.collection("commodities").doc(name).get().then(c=>{
+            let price = c.data().price;
+            let credit = qty * price;
 
+            db.collection("wallets").doc(uid).get().then(w=>{
+                let bal = w.data().balance;
+                db.collection("wallets").doc(uid).update({
+                    balance: bal + credit
+                });
+
+                alert("Sold Successfully!");
+            });
+        });
+    });
+}
+
+// ---------------- HOLDINGS + PROFIT LOSS ----------------
+function loadHoldings(){
+    db.collection("holdings").doc(uid).collection("items").onSnapshot(snap=>{
+        let html = "";
+        let totalPL = 0;
+
+        if(snap.empty){
+            holdings.innerHTML = "No holdings yet";
+            return;
+        }
+
+        snap.forEach(async(d)=>{
+            let qty = d.data().qty;
+
+            // Get current price
+            let c = await db.collection("commodities").doc(d.id).get();
+            let price = c.data().price;
+
+            // assuming buy avg = price (can update later if needed)
+            let pl = qty * price;
+            totalPL += pl;
+
+            html += `<div class='h-item'>${d.id} — ${qty} KG × ₹${price}</div>`;
+        });
+
+        holdings.innerHTML = html;
+        plValue.innerHTML = "₹ " + totalPL.toFixed(2);
+    });
+}
 </script>
 
 </body>
