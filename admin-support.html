@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Support Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+body {
+    margin: 0;
+    padding: 20px;
+    background: #f4f6f9;
+    font-family: Arial;
+}
+
+.header {
+    text-align: center;
+    font-size: 26px;
+    font-weight: bold;
+    color: #4A90E2;
+    margin-bottom: 15px;
+}
+
+.ticket {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+}
+
+.input-box {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-top: 8px;
+}
+
+.btn {
+    width: 100%;
+    padding: 12px;
+    background: #4A90E2;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    margin-top: 8px;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">Admin Support Panel</div>
+
+<div id="allTickets">Loading...</div>
+
+<script>
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyC98Lxjn6jn-V9NQjcOGluL04EAX4kzpmY",
+  authDomain: "rojbachat-7e5a8.firebaseapp.com",
+  projectId: "rojbachat-7e5a8",
+  storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+  messagingSenderId: "790739371754",
+  appId: "1:790739371754:web:9b0bd71f2579d664747993"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// LOAD ALL TICKETS
+db.collection("supportTickets")
+  .orderBy("time", "desc")
+  .onSnapshot(snapshot => {
+    let html = "";
+    snapshot.forEach(doc => {
+        let t = doc.data();
+
+        html += `
+            <div class="ticket">
+                <b>${t.subject}</b><br>
+                <small><b>User:</b> ${t.email}</small><br><br>
+                <div>${t.message}</div>
+
+                <textarea class="input-box" id="reply_${doc.id}"
+                    placeholder="Admin Reply...">${t.reply || ""}</textarea>
+
+                <button class="btn" onclick="sendReply('${doc.id}')">Send Reply</button>
+            </div>
+        `;
+    });
+
+    document.getElementById("allTickets").innerHTML = html;
+});
+
+function sendReply(id) {
+    let reply = document.getElementById("reply_" + id).value;
+
+    db.collection("supportTickets").doc(id).update({
+        reply: reply
+    }).then(() => {
+        alert("Reply Sent!");
+    });
+}
+</script>
+
+</body>
+</html>
