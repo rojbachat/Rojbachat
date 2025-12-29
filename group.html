@@ -3,6 +3,7 @@
 <head>
 <title>Trading - Roj Bachat</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
 body{
     margin:0;font-family:Arial;background:#f4f6f9;
@@ -33,10 +34,20 @@ body{
     box-shadow:0 2px 5px #0002;margin-top:15px;
 }
 .h-item{padding:8px 0;border-bottom:1px solid #ddd;font-size:16px;}
+
+.loaderBox{
+    text-align:center;padding:40px;font-size:20px;color:#444;
+}
 </style>
 </head>
 
 <body>
+
+<!-- ===== LOADER (AUTH KE LOAD HONE TAK) ===== -->
+<div id="loader" class="loaderBox">Loading...</div>
+
+<!-- ===== MAIN UI (Initially Hidden) ===== -->
+<div id="mainContent" style="display:none;">
 
 <div class="header">Trading Market</div>
 
@@ -63,6 +74,9 @@ body{
     <h2 id="plValue">₹0.00</h2>
 </div>
 
+</div> <!-- mainContent end -->
+
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -78,14 +92,24 @@ const firebaseConfig = {
     appId: "XXXX"
 };
 firebase.initializeApp(firebaseConfig);
+
 const db = firebase.firestore();
+const auth = firebase.auth();
 
 let uid = null;
 
-// ---------------- USER LOGIN CHECK ----------------
-firebase.auth().onAuthStateChanged(user => {
-    if (!user) { window.location.href = "index.html"; return; }
+// ================== SAFE AUTH CHECK (NO REDIRECT BUG) ==================
+auth.onAuthStateChanged((user) => {
+    if (!user) {
+        window.location.href = "index.html"; // only if no login
+        return;
+    }
+
     uid = user.uid;
+
+    // Show UI safely
+    document.getElementById("loader").style.display = "none";
+    document.getElementById("mainContent").style.display = "block";
 
     loadCommodities();
     loadHoldings();
@@ -98,28 +122,23 @@ function loadCommodities() {
         snap.forEach(doc => {
             html += `<option value="${doc.id}">${doc.id}</option>`;
         });
-
-        document.getElementById("commodity").innerHTML = html;
-
-        if (html !== "") updatePrice();  // Fix
+        commodity.innerHTML = html;
+        updatePrice();
     });
 }
 
-document.getElementById("commodity").addEventListener("change", updatePrice);
+commodity.addEventListener("change", updatePrice);
 
 function updatePrice() {
-    let name = document.getElementById("commodity").value;
-    if (!name) return;
-
+    let name = commodity.value;
     db.collection("commodities").doc(name).get().then(d => {
-        if (d.exists)
-            document.getElementById("currentPrice").innerHTML = "Price: ₹" + d.data().price;
+        currentPrice.innerHTML = "Price: ₹" + d.data().price;
     });
 }
 
 // ---------------- BUY FUNCTION ----------------
 function buyNow(){
-    let qty = Number(document.getElementById("qty").value);
+    let qty = Number(qtyInput.value);
     if(qty<=0){ alert("Enter valid KG"); return; }
 
     let name = commodity.value;
@@ -128,25 +147,24 @@ function buyNow(){
         let price = doc.data().price;
         let cost = qty * price;
 
-        // Wallet read
         db.collection("wallets").doc(uid).get().then(w=>{
-            let bal = w.exists ? w.data().balance : 0;
+            let bal = w.data().balance;
 
             if(bal < cost){
                 alert("Not enough balance");
                 return;
             }
 
-            // Wallet update
             db.collection("wallets").doc(uid).update({
                 balance: bal - cost
             });
 
-            // Add/update holding
-            db.collection("holdings").doc(uid).collection("items").doc(name).get().then(h=>{
+            db.collection("holdings")
+            .doc(uid).collection("items").doc(name).get().then(h=>{
                 let oldQty = h.exists ? h.data().qty : 0;
 
-                db.collection("holdings").doc(uid).collection("items").doc(name).set({
+                db.collection("holdings")
+                .doc(uid).collection("items").doc(name).set({
                     qty: oldQty + qty
                 });
             });
@@ -158,7 +176,7 @@ function buyNow(){
 
 // ---------------- SELL FUNCTION ----------------
 function sellNow(){
-    let qty = Number(document.getElementById("qty").value);
+    let qty = Number(qtyInput.value);
     if(qty<=0){ alert("Enter valid KG"); return; }
 
     let name = commodity.value;
@@ -171,19 +189,16 @@ function sellNow(){
 
         let remaining = h.data().qty - qty;
 
-        // Update holding
         db.collection("holdings").doc(uid).collection("items").doc(name).update({
             qty: remaining
         });
 
-        // Sell credit
         db.collection("commodities").doc(name).get().then(c=>{
             let price = c.data().price;
             let credit = qty * price;
 
             db.collection("wallets").doc(uid).get().then(w=>{
                 let bal = w.data().balance;
-
                 db.collection("wallets").doc(uid).update({
                     balance: bal + credit
                 });
@@ -224,4 +239,4 @@ function loadHoldings(){
 </script>
 
 </body>
-</html>
+    </html>
