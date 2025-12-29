@@ -12,20 +12,37 @@
   <style>
     body { font-family: Arial; background:#f5f5f5; padding:15px; }
     h2 { text-align:center; }
-    .box { background:white; padding:15px; margin-top:10px; border-radius:10px; box-shadow:0 0 10px #0002; }
+
+    .top-box{
+      background:white;padding:15px;border-radius:10px;
+      box-shadow:0 0 10px #0002;margin-bottom:15px;
+    }
+
+    .box {
+      background:white; padding:15px; margin-top:10px;
+      border-radius:10px; box-shadow:0 0 10px #0002;
+    }
+
     button { padding:10px 15px; border:none; border-radius:5px; margin-left:5px; cursor:pointer; }
     .buy { background:#28a745; color:white; }
     .sell { background:#dc3545; color:white; }
-    #wallet { font-size:18px; font-weight:bold; margin-bottom:10px; }
-    .profit { color:green; }
-    .loss { color:red; }
+
+    #wallet { font-size:18px; font-weight:bold; }
+    #investment { font-size:18px; margin-top:5px; }
+
+    .profit { color:green; font-weight:bold; }
+    .loss { color:red; font-weight:bold; }
   </style>
 </head>
 
 <body>
 
 <h2>Commodity Trading</h2>
-<div id="wallet">Wallet: ₹0</div>
+
+<div class="top-box">
+  <div id="wallet">Wallet: ₹0</div>
+  <div id="investment">Total Investment: ₹0</div>
+</div>
 
 <h3>Your Holdings</h3>
 <div id="holdingsList"></div>
@@ -50,7 +67,6 @@
   const db = firebase.firestore();
 
   let uid = null;
-
 
   // ---------------- USER LOGIN CHECK ----------------
   auth.onAuthStateChanged(user => {
@@ -77,21 +93,30 @@
       .onSnapshot(snap => {
 
         let html = "";
+        let totalInvestment = 0;
 
         snap.forEach(doc => {
           let d = doc.data();
+
+          let itemInvestment = d.quantity * d.avgPrice;
+          totalInvestment += itemInvestment;
 
           html += `
             <div class="box">
               <b>${doc.id.toUpperCase()}</b><br>
               Quantity: ${d.quantity} KG<br>
               Avg Price: ₹${d.avgPrice}<br>
-              <span id="profit_${doc.id}"></span>
+              Investment: ₹${itemInvestment}<br>
+              Buy Date: ${d.buyDate}<br>
+              <div id="profit_${doc.id}"></div>
             </div>
           `;
         });
 
         document.getElementById("holdingsList").innerHTML = html;
+        document.getElementById("investment").innerHTML = "Total Investment: ₹" + totalInvestment;
+
+        updateProfitLoss();
       });
   }
 
@@ -117,19 +142,26 @@
       });
 
       document.getElementById("commodityList").innerHTML = html;
-
       updateProfitLoss();
     });
   }
 
 
+
   // ---------------- BUY COMMODITY ----------------
   async function buyCommodity(id, name, price) {
+
     let qty = prompt("Enter quantity in KG:");
     if (!qty || qty <= 0) return;
-
     qty = Number(qty);
+
     let cost = qty * price;
+
+    let buyDate = new Date();
+    let formattedDate =
+      String(buyDate.getDate()).padStart(2,'0') + "-" +
+      String(buyDate.getMonth()+1).padStart(2,'0') + "-" +
+      buyDate.getFullYear();
 
     let userRef = db.collection("users").doc(uid);
     let holdRef = userRef.collection("holdings").doc(id);
@@ -137,7 +169,6 @@
     await db.runTransaction(async t => {
 
       let userDoc = await t.get(userRef);
-
       let wallet = userDoc.data().wallet || 0;
 
       if (wallet < cost) {
@@ -152,7 +183,8 @@
       if (!holdDoc.exists) {
         t.set(holdRef, {
           quantity: qty,
-          avgPrice: price
+          avgPrice: price,
+          buyDate: formattedDate
         });
       } else {
         let oldQty = holdDoc.data().quantity;
@@ -163,7 +195,8 @@
 
         t.update(holdRef, {
           quantity: newQty,
-          avgPrice: newAvg
+          avgPrice: newAvg,
+          buyDate: formattedDate
         });
       }
 
@@ -173,8 +206,10 @@
   }
 
 
+
   // ---------------- SELL COMMODITY ----------------
   async function sellCommodity(id, name, price) {
+
     let qty = prompt("Enter quantity in KG:");
     if (!qty || qty <= 0) return;
 
@@ -186,6 +221,7 @@
     await db.runTransaction(async t => {
 
       let holdDoc = await t.get(holdRef);
+
       if (!holdDoc.exists || holdDoc.data().quantity < qty) {
         alert("You don't have enough quantity!");
         return;
@@ -201,13 +237,17 @@
 
       t.update(userRef, { wallet: wallet + credit });
 
-      if (newQty == 0) t.delete(holdRef);
-      else t.update(holdRef, { quantity: newQty });
+      if (newQty == 0) {
+        t.delete(holdRef);
+      } else {
+        t.update(holdRef, { quantity: newQty });
+      }
 
     });
 
     alert("Sold Successfully!");
   }
+
 
 
   // ---------------- PROFIT / LOSS ----------------
@@ -228,7 +268,6 @@
           let el = document.getElementById("profit_" + id);
 
           el.innerHTML = "P/L: " + profit.toFixed(2);
-
           el.className = profit >= 0 ? "profit" : "loss";
         });
 
@@ -238,4 +277,4 @@
 </script>
 
 </body>
-</html>
+  </html>
