@@ -21,7 +21,7 @@
       border-radius:5px; border:1px solid #ccc;
     }
     button { background:black; color:white; border:none; }
-    #walletBox{font-size:20px; font-weight:bold; margin-bottom:10px;}
+    #walletBox { font-size:20px; font-weight:bold; margin-bottom:10px; }
   </style>
 </head>
 
@@ -38,7 +38,6 @@
 
   <p id="msg" style="color:red;"></p>
 </div>
-
 
 <script>
   // ------------------ FIREBASE CONFIG ------------------
@@ -67,7 +66,7 @@
     }
   });
 
-  // ------------------ LOAD WALLET BALANCE ------------------
+  // ------------------ LOAD WALLET ------------------
   function loadWallet() {
     db.collection("users").doc(uid).onSnapshot(doc => {
       if (doc.exists) {
@@ -79,7 +78,8 @@
 
   // ------------------ START PAYMENT ------------------
   function startPayment() {
-    let amount = document.getElementById("amount").value;
+    let amount = Number(document.getElementById("amount").value);
+
     if (amount < 10) {
       document.getElementById("msg").innerHTML = "Amount must be ₹10 or more";
       return;
@@ -91,11 +91,15 @@
       "currency": "INR",
       "name": "Roj Bachat",
       "description": "Add Money",
-
       "handler": function (response) {
-        saveSuccess(amount, response.razorpay_payment_id);
-      },
 
+        if (!response.razorpay_payment_id || response.razorpay_payment_id.length < 10) {
+          document.getElementById("msg").innerHTML = "Invalid Payment!";
+          return;
+        }
+
+        savePayment(amount, response.razorpay_payment_id);
+      },
       "prefill": { "email": auth.currentUser.email }
     };
 
@@ -108,31 +112,37 @@
     rzp.open();
   }
 
-  // ------------------ SAVE SUCCESS ------------------
-  function saveSuccess(amount, paymentId) {
+  // ------------------ SAVE TO FIREBASE ------------------
+  function savePayment(amount, paymentId) {
 
     let userRef = db.collection("users").doc(uid);
 
     db.runTransaction(async (t) => {
-      const doc = await t.get(userRef);
+      let doc = await t.get(userRef);
+
       let oldBal = doc.exists ? doc.data().wallet || 0 : 0;
       let newBal = oldBal + Number(amount);
 
-      t.update(userRef, { wallet: newBal });
+      let oldHistory = doc.exists ? doc.data().walletHistory || [] : [];
 
-      // History entry
-      let historyRef = userRef.collection("history").doc();
-      t.set(historyRef, {
-        type: "add_money",
+      let entry = {
+        type: "add",
         amount: Number(amount),
         paymentId: paymentId,
-        time: new Date().toISOString()
-      });
+        time: new Date().toLocaleString()
+      };
+
+      oldHistory.push(entry);
+
+      t.set(userRef, {
+        wallet: newBal,
+        walletHistory: oldHistory
+      }, { merge: true });
 
     })
     .then(() => {
       document.getElementById("msg").style.color = "green";
-      document.getElementById("msg").innerHTML = "Payment Success!";
+      document.getElementById("msg").innerHTML = "Payment Successful!";
     })
     .catch(err => {
       console.error(err);
@@ -143,4 +153,4 @@
 </script>
 
 </body>
-</html>
+  </html>
