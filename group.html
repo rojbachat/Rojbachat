@@ -182,8 +182,8 @@ auth.onAuthStateChanged(user => {
 
 // ---------------- LOAD WALLET ----------------
 function loadWallet(){
-    db.collection("wallets").doc(uid).onSnapshot(doc=>{
-        let bal = doc.exists ? doc.data().balance : 0;
+    db.collection("users").doc(uid).onSnapshot(doc=>{
+        let bal = doc.exists && doc.data().wallet ? doc.data().wallet : 0;
         document.getElementById("walletBalance").innerText = "₹" + bal.toFixed(2);
     });
 }
@@ -222,9 +222,8 @@ function buyNow(){
         let price = doc.data().price;
         let cost = qtyVal * price;
 
-        let walletRef = db.collection("wallets").doc(uid);
-        walletRef.get().then(w=>{
-            let bal = w.exists ? w.data().balance : 0;
+        db.collection("users").doc(uid).get().then(u=>{
+            let bal = u.exists && u.data().wallet ? u.data().wallet : 0;
 
             if(bal < cost){
                 alert("Not enough balance!");
@@ -232,7 +231,7 @@ function buyNow(){
             }
 
             // Deduct wallet
-            walletRef.update({ balance: bal - cost });
+            db.collection("users").doc(uid).update({ wallet: bal - cost });
 
             // Update holdings
             let ref = db.collection("holdings").doc(uid).collection("items").doc(item);
@@ -259,6 +258,7 @@ function sellNow(){
     if(qtyVal <= 0){ alert("Enter valid KG"); return; }
 
     let item = document.getElementById("commodity").value;
+
     let ref = db.collection("holdings").doc(uid).collection("items").doc(item);
     ref.get().then(h=>{
         if(!h.exists || h.data().qty < qtyVal){
@@ -280,10 +280,9 @@ function sellNow(){
             let price = c.data().price;
             let credit = qtyVal * price;
 
-            let walletRef = db.collection("wallets").doc(uid);
-            walletRef.get().then(w=>{
-                let bal = w.exists ? w.data().balance : 0;
-                walletRef.update({ balance: bal + credit });
+            db.collection("users").doc(uid).get().then(u=>{
+                let bal = u.exists && u.data().wallet ? u.data().wallet : 0;
+                db.collection("users").doc(uid).update({ wallet: bal + credit });
                 alert("Sold Successfully!");
                 loadHoldings();
             });
@@ -331,4 +330,4 @@ async function loadHoldings(){
 </script>
 
 </body>
-</html>
+    </htmscriptript
