@@ -6,51 +6,95 @@
 
 <style>
 body{
-    margin:0;font-family:Arial;background:#f4f6f9;
+    margin:0;
+    font-family: 'Segoe UI', Arial;
+    background:#eef1f6;
 }
 .header{
-    background:#007bff;padding:18px;color:white;
-    text-align:center;font-size:22px;font-weight:bold;
+    background:#0059d6;
+    padding:18px;
+    color:white;
+    text-align:center;
+    font-size:22px;
+    font-weight:600;
+    box-shadow:0 2px 6px #0003;
 }
-.card{
-    background:white;margin:15px;padding:20px;
-    border-radius:12px;box-shadow:0 2px 6px #0002;
-}
-.label{font-size:16px;margin-bottom:6px;}
-.input{
-    width:100%;padding:10px;font-size:16px;
-    border:1px solid #ccc;border-radius:8px;margin-top:5px;
-}
-.btn{
-    width:48%;padding:12px;font-size:18px;margin-top:15px;
-    border-radius:10px;border:none;color:white;
-}
-.buy-btn{background:#28a745;}
-.sell-btn{background:#dc3545;}
-.row{display:flex;justify-content:space-between;}
-.price{color:#007bff;font-weight:bold;font-size:20px;}
-.holding-box{
-    background:#fff;padding:15px;border-radius:12px;
-    box-shadow:0 2px 5px #0002;margin-top:15px;
-}
-.h-item{padding:8px 0;border-bottom:1px solid #ddd;font-size:16px;}
 
-.loaderBox{
-    text-align:center;padding:40px;font-size:20px;color:#444;
+.card{
+    background:white;
+    margin:15px;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 3px 10px #0002;
+}
+
+.label{
+    font-size:16px;
+    font-weight:600;
+    margin-bottom:6px;
+}
+
+.input{
+    width:100%;
+    padding:12px;
+    font-size:16px;
+    border:1px solid #ccc;
+    border-radius:10px;
+    margin-top:5px;
+    outline:none;
+}
+
+.price{
+    color:#0059d6;
+    font-weight:bold;
+    font-size:20px;
+    padding:8px 0;
+}
+
+.row{
+    display:flex;
+    justify-content:space-between;
+}
+
+.btn{
+    width:48%;
+    padding:14px;
+    font-size:18px;
+    border-radius:12px;
+    border:none;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.buy-btn{ background:#1aa156; box-shadow:0 3px 8px #1aa15655; }
+.sell-btn{ background:#e03333; box-shadow:0 3px 8px #e0333355; }
+
+.holding-box{
+    background:white;
+    padding:15px;
+    margin:15px;
+    border-radius:15px;
+    box-shadow:0 3px 10px #0002;
+}
+
+.h-item{
+    background:#f5f7fb;
+    padding:12px;
+    margin:8px 0;
+    border-radius:10px;
+    font-size:16px;
+    display:flex;
+    justify-content:space-between;
 }
 </style>
 </head>
 
 <body>
 
-<!-- ===== LOADER (AUTH KE LOAD HONE TAK) ===== -->
-<div id="loader" class="loaderBox">Loading...</div>
-
-<!-- ===== MAIN UI (Initially Hidden) ===== -->
-<div id="mainContent" style="display:none;">
-
 <div class="header">Trading Market</div>
 
+<!-- SELECT BOX -->
 <div class="card">
     <label class="label">Select Commodity</label>
     <select id="commodity" class="input"></select>
@@ -66,17 +110,16 @@ body{
     </div>
 </div>
 
-<div class="card holding-box">
+<!-- HOLDINGS LIST -->
+<div class="holding-box">
     <h3>Your Holdings</h3>
     <div id="holdings">No holdings yet</div>
 
-    <h3 style="margin-top:15px;">Profit / Loss</h3>
+    <h3 style="margin-top:18px;">Total Profit / Loss</h3>
     <h2 id="plValue">₹0.00</h2>
 </div>
 
-</div> <!-- mainContent end -->
-
-<!-- Firebase -->
+<!-- Firebase Scripts -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -84,39 +127,35 @@ body{
 <script>
 // ------------------ FIREBASE CONFIG ------------------
 const firebaseConfig = {
-    apiKey: "XXXX",
-    authDomain: "XXXX",
-    projectId: "XXXX",
-    storageBucket: "XXXX",
-    messagingSenderId: "XXXX",
-    appId: "XXXX"
+  apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
+  authDomain: "rojbachat-7e5a8.firebaseapp.com",
+  projectId: "rojbachat-7e5a8",
+  storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+  messagingSenderId: "790739371754",
+  appId: "1:790739371754:web:9b0bd71f2579d664747993"
 };
+
 firebase.initializeApp(firebaseConfig);
 
 const db = firebase.firestore();
 const auth = firebase.auth();
-
 let uid = null;
 
-// ================== SAFE AUTH CHECK (NO REDIRECT BUG) ==================
-auth.onAuthStateChanged((user) => {
+// -------------- LOGIN CHECK (No Redirect Bug) --------------
+auth.onAuthStateChanged(user => {
     if (!user) {
-        window.location.href = "index.html"; // only if no login
+        console.log("User not logged in — but not redirecting.");
         return;
     }
 
     uid = user.uid;
-
-    // Show UI safely
-    document.getElementById("loader").style.display = "none";
-    document.getElementById("mainContent").style.display = "block";
 
     loadCommodities();
     loadHoldings();
 });
 
 // ---------------- LOAD COMMODITIES ----------------
-function loadCommodities() {
+function loadCommodities(){
     db.collection("commodities").onSnapshot(snap => {
         let html = "";
         snap.forEach(doc => {
@@ -129,21 +168,23 @@ function loadCommodities() {
 
 commodity.addEventListener("change", updatePrice);
 
-function updatePrice() {
-    let name = commodity.value;
-    db.collection("commodities").doc(name).get().then(d => {
-        currentPrice.innerHTML = "Price: ₹" + d.data().price;
+function updatePrice(){
+    let item = commodity.value;
+    if(!item) return;
+
+    db.collection("commodities").doc(item).get().then(doc=>{
+        currentPrice.innerHTML = "Price: ₹" + doc.data().price;
     });
 }
 
 // ---------------- BUY FUNCTION ----------------
 function buyNow(){
-    let qty = Number(qtyInput.value);
-    if(qty<=0){ alert("Enter valid KG"); return; }
+    let qty = Number(qty.value);
+    if(qty <= 0){ alert("Enter valid KG"); return; }
 
-    let name = commodity.value;
+    let item = commodity.value;
 
-    db.collection("commodities").doc(name).get().then(doc=>{
+    db.collection("commodities").doc(item).get().then(doc=>{
         let price = doc.data().price;
         let cost = qty * price;
 
@@ -151,54 +192,53 @@ function buyNow(){
             let bal = w.data().balance;
 
             if(bal < cost){
-                alert("Not enough balance");
+                alert("Not enough balance!");
                 return;
             }
 
+            // Deduct wallet
             db.collection("wallets").doc(uid).update({
                 balance: bal - cost
             });
 
-            db.collection("holdings")
-            .doc(uid).collection("items").doc(name).get().then(h=>{
+            // Update holdings
+            let ref = db.collection("holdings").doc(uid).collection("items").doc(item);
+            ref.get().then(h=>{
                 let oldQty = h.exists ? h.data().qty : 0;
-
-                db.collection("holdings")
-                .doc(uid).collection("items").doc(name).set({
-                    qty: oldQty + qty
-                });
+                ref.set({ qty: oldQty + qty });
             });
 
-            alert("Bought Successfully!");
+            alert("Purchase Successful!");
         });
     });
 }
 
 // ---------------- SELL FUNCTION ----------------
 function sellNow(){
-    let qty = Number(qtyInput.value);
-    if(qty<=0){ alert("Enter valid KG"); return; }
+    let qtyVal = Number(qty.value);
+    if(qtyVal <= 0){ alert("Enter valid KG"); return; }
 
-    let name = commodity.value;
+    let item = commodity.value;
 
-    db.collection("holdings").doc(uid).collection("items").doc(name).get().then(h=>{
-        if(!h.exists || h.data().qty < qty){
+    db.collection("holdings").doc(uid).collection("items").doc(item).get().then(h=>{
+        if(!h.exists || h.data().qty < qtyVal){
             alert("Not enough quantity!");
             return;
         }
 
-        let remaining = h.data().qty - qty;
+        let newQty = h.data().qty - qtyVal;
 
-        db.collection("holdings").doc(uid).collection("items").doc(name).update({
-            qty: remaining
+        db.collection("holdings").doc(uid).collection("items").doc(item).update({
+            qty: newQty
         });
 
-        db.collection("commodities").doc(name).get().then(c=>{
+        db.collection("commodities").doc(item).get().then(c=>{
             let price = c.data().price;
-            let credit = qty * price;
+            let credit = qtyVal * price;
 
             db.collection("wallets").doc(uid).get().then(w=>{
                 let bal = w.data().balance;
+
                 db.collection("wallets").doc(uid).update({
                     balance: bal + credit
                 });
@@ -217,23 +257,29 @@ function loadHoldings(){
 
         if(snap.empty){
             holdings.innerHTML = "No holdings yet";
+            plValue.innerHTML = "₹0.00";
             return;
         }
 
-        snap.forEach(async(d)=>{
-            let qty = d.data().qty;
+        snap.forEach(async doc=>{
+            let qty = doc.data().qty;
 
-            let c = await db.collection("commodities").doc(d.id).get();
+            let c = await db.collection("commodities").doc(doc.id).get();
             let price = c.data().price;
 
             let pl = qty * price;
             totalPL += pl;
 
-            html += `<div class='h-item'>${d.id} — ${qty} KG × ₹${price}</div>`;
+            html += `
+                <div class="h-item">
+                    <span>${doc.id}</span>
+                    <span>${qty} KG × ₹${price}</span>
+                </div>
+            `;
         });
 
         holdings.innerHTML = html;
-        plValue.innerHTML = "₹ " + totalPL.toFixed(2);
+        plValue.innerHTML = "₹" + totalPL.toFixed(2);
     });
 }
 </script>
