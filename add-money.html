@@ -1,37 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Add Money - Roj Bachat</title>
+<title>Add Money</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
-body { font-family: Arial; padding:20px; background:#f5f5f5; }
+body { font-family: Arial; background:#f5f5f5; padding:20px; }
 .box {
   max-width:400px; margin:auto; background:white; padding:20px;
   border-radius:10px; box-shadow:0 0 10px #0003;
 }
 input, button {
-  width:100%; padding:12px; margin-top:10px;
-  font-size:18px; border-radius:6px;
-  border:1px solid #ccc;
+  width:100%; padding:12px; font-size:18px;
+  margin-top:10px; border-radius:6px; border:1px solid #ccc;
 }
 button { background:black; color:white; border:none; }
+.msg { color:green; font-weight:bold; margin-top:10px; }
 </style>
 </head>
 
 <body>
+
 <div class="box">
   <h2>Add Money</h2>
 
   <label>Enter Amount</label>
-  <input type="number" id="amount" placeholder="e.g. 100">
+  <input type="number" id="amount" placeholder="Enter Amount">
 
-  <button onclick="generateUpi()">Pay Now</button>
+  <button onclick="payNow()">Pay Now</button>
 
-  <p id="msg" style="color:green; font-weight:bold;"></p>
+  <p id="msg" class="msg"></p>
 </div>
 
 <script>
-function generateUpi() {
+// ---------------------- FIREBASE CONFIG ----------------------
+const firebaseConfig = {
+  apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
+  authDomain: "rojbachat-7e5a8.firebaseapp.com",
+  projectId: "rojbachat-7e5a8",
+  storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+  messagingSenderId: "790739371754",
+  appId: "1:790739371754:web:9b0bd71f2579d664747993"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ---------------------- UPI PAYMENT ----------------------
+function payNow() {
   let amount = document.getElementById("amount").value;
   let msg = document.getElementById("msg");
 
@@ -40,25 +62,49 @@ function generateUpi() {
     return;
   }
 
-  msg.innerHTML = "Generating payment link...";
+  const upiId = "Q426192184@okbizaxis";  
+  const name = "Roj Bachat";
 
-  // ⚠️ आपकी UPI ID यहां डालें
-  let upi_id = "gpnzarda63@axl";  
+  // UPI Deep Link
+  const upiURL = 
+    `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=Wallet%20Add`;
 
-  // Free UPI Link Generator API
-  let apiURL = `https://upiqr.in/api/upi-link?name=RojBachat&pa=${upi_id}&am=${amount}&tn=Wallet%20Add`;
+  msg.innerHTML = "Opening UPI app...";
 
-  fetch(apiURL)
-    .then(res => res.json())
-    .then(data => {
-      if (data.upiLink) {
-        msg.innerHTML = `Link Ready! Redirecting...`;
-        window.location.href = data.upiLink; // Opens UPI App
-      } else {
-        msg.innerHTML = "Error generating UPI link.";
-      }
-    })
-    .catch(() => msg.innerHTML = "Network error!");
+  // Open UPI App
+  window.location.href = upiURL;
+
+  // After 5 sec → Save request for admin
+  setTimeout(() => {
+    saveRequest(amount);
+  }, 5000);
+}
+
+// ---------------------- SAVE REQUEST IN FIREBASE ----------------------
+function saveRequest(amount) {
+  const user = auth.currentUser;
+
+  if (!user) {
+    alert("Login required!");
+    window.location.href = "login.html";
+    return;
+  }
+
+  db.collection("addMoneyRequests").add({
+    uid: user.uid,
+    email: user.email,
+    amount: amount,
+    upi: "gpnzarda63@axl",
+    time: new Date().toISOString(),
+    status: "PENDING"
+  })
+  .then(() => {
+    document.getElementById("msg").innerHTML =
+      "Payment Submitted! Admin will verify shortly.";
+  })
+  .catch(err => {
+    alert("Error saving request: " + err.message);
+  });
 }
 </script>
 
