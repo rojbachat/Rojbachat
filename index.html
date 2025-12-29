@@ -16,48 +16,99 @@
         font-family: Arial, sans-serif;
         background: #f4f6f9;
     }
-    .header {
+
+    /* --------- TOP BAR --------- */
+    .top-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
         background: #4A90E2;
-        padding: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 15px;
         color: white;
+        z-index: 999;
+    }
+
+    .icon-btn {
+        font-size: 28px;
+        cursor: pointer;
+    }
+
+    /* WALLET BOX CENTER */
+    .wallet-box {
+        background: white;
+        width: 140px;
+        padding: 6px;
+        border-radius: 10px;
         text-align: center;
-        font-size: 22px;
+        color: #4A90E2;
+        font-size: 16px;
         font-weight: bold;
+        box-shadow: 0 2px 7px rgba(0,0,0,0.2);
     }
+
+    /* --------- MAIN CONTENT --------- */
     .container {
-        padding: 20px;
+        padding: 80px 20px 100px;
     }
+
     .card {
         background: white;
         padding: 20px;
+        border-radius: 12px;
         margin-bottom: 15px;
-        border-radius: 10px;
+        text-align: center;
         box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        font-size: 18px;
-        text-align: center;
     }
+
+    /* Buttons (hidden text, for logic only) */
     .menu-btn {
-        display: block;
-        width: 100%;
-        padding: 15px;
-        margin: 10px 0;
+        display: none;
+    }
+
+    /* --------- BOTTOM NAVIGATION --------- */
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 70px;
+        background: white;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        box-shadow: 0 -3px 10px rgba(0,0,0,0.1);
+        z-index: 999;
+    }
+
+    .nav-item {
         text-align: center;
-        font-size: 18px;
-        border-radius: 8px;
-        border: none;
-        background: #4A90E2;
-        color: white;
         cursor: pointer;
+        font-size: 30px;
+        color: #4A90E2;
     }
-    .logout {
-        background: red !important;
-    }
+
 </style>
 </head>
+
 <body>
 
-<div class="header">Roj Bachat – Dashboard</div>
+<!-- ------------ TOP BAR ------------- -->
+<div class="top-bar">
+    <div class="icon-btn" onclick="location.href='profile.html'">👤</div>
 
+    <div class="wallet-box">
+        ₹ <span id="walletBalance">0</span>
+    </div>
+
+    <div class="icon-btn" onclick="logout()">🚪</div>
+</div>
+
+<!-- ------------ MAIN CONTENT ------------- -->
 <div class="container">
 
     <div class="card">
@@ -65,15 +116,23 @@
         <div id="userEmail">Loading...</div>
     </div>
 
-    <button class="menu-btn" onclick="location.href='daily-saving.html'">Daily Saving</button>
-    <button class="menu-btn" onclick="location.href='add-money.html'">Add Money</button>
-    <button class="menu-btn" onclick="location.href='pay.html'">Pay Now</button>
-    <button class="menu-btn" onclick="location.href='withdraw.html'">Withdraw</button>
-    <button class="menu-btn" onclick="location.href='history.html'">Saving History</button>
-    <button class="menu-btn" onclick="location.href='group.html'">Groups</button>
-    <button class="menu-btn" onclick="location.href='profile.html'">Profile</button>
+    <!-- ORIGINAL BUTTONS (LOGIC SAFE) -->
+    <button class="menu-btn" onclick="location.href='daily-saving.html'">DS</button>
+    <button class="menu-btn" onclick="location.href='add-money.html'">AM</button>
+    <button class="menu-btn" onclick="location.href='pay.html'">P</button>
+    <button class="menu-btn" onclick="location.href='withdraw.html'">W</button>
+    <button class="menu-btn" onclick="location.href='history.html'">H</button>
+    <button class="menu-btn" onclick="location.href='group.html'">G</button>
+    <button class="menu-btn" onclick="location.href='profile.html'">PF</button>
+    <button class="menu-btn logout" onclick="logout()">L</button>
 
-    <button class="menu-btn logout" onclick="logout()">Logout</button>
+</div>
+
+<!-- ------------ BOTTOM NAVIGATION BAR ------------- -->
+<div class="bottom-nav">
+    <div class="nav-item" onclick="location.href='group.html'">📈</div>
+    <div class="nav-item" onclick="location.href='history.html'">📜</div>
+    <div class="nav-item" onclick="location.href='withdraw.html'">💸</div>
 </div>
 
 <script>
@@ -89,13 +148,21 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+const db = firebase.firestore();
 
-// ---------------- AUTH CHECK (No Loop) ----------------
+// ---------------- AUTH CHECK ----------------
 auth.onAuthStateChanged((user) => {
     if (!user) {
         window.location.href = "login.html";
     } else {
         document.getElementById("userEmail").innerText = user.email;
+
+        // Load Wallet Balance Live
+        db.collection("wallets").doc(user.uid).onSnapshot(doc => {
+            if (doc.exists) {
+                document.getElementById("walletBalance").innerText = doc.data().balance || 0;
+            }
+        });
     }
 });
 
@@ -108,4 +175,4 @@ function logout() {
 </script>
 
 </body>
-</html>
+        </html>
