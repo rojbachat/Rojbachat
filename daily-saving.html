@@ -60,61 +60,7 @@
 </div>
 
 
-<script>
-  // Firebase Config (YOUR CONFIG)
-  const firebaseConfig = {
-    apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
-    authDomain: "rojbachat-7e5a8.firebaseapp.com",
-    projectId: "rojbachat-7e5a8",
-    storageBucket: "rojbachat-7e5a8.firebasestorage.app",
-    messagingSenderId: "790739371754",
-    appId: "1:790739371754:web:9b0bd71f2579d664747993"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-
-  let uid = null;
-
-  auth.onAuthStateChanged(user => {
-    if (!user) {
-      window.location.href = "login.html";
-    } else {
-      uid = user.uid;
-      loadWallet();
-    }
-  });
-
-  function loadWallet() {
-    db.collection("wallets").doc(uid).get().then(doc => {
-      if (doc.exists) {
-        document.getElementById("balance").innerText = doc.data().balance || 0;
-      } else {
-        db.collection("wallets").doc(uid).set({ balance: 0 });
-      }
-    });
-  }
-
-  // 🟦 Step 1: Open UPI App
-  function openUPI() {
-    let amount = document.getElementById("amount").value;
-    if (amount <= 0) return alert("Enter valid amount!");
-
-    // Your Admin UPI ID
-    let upiID = "gpnzarda63@axl";
-
-    let url = `upi://pay?pa=${upiID}&pn=RojBachat&am=${amount}&cu=INR`;
-
-    window.location.href = url;
-  }
-
-  // 🟩 Step 2: User confirms payment → wallet update
-  function confirmPayment() {
-    let amount = Number(document.getElementById("amount").value);
-    if (amount <= 0) return alert("Enter amount first!");
-
-    let walletRef = db.collection("wallets").doc(uid);
+<lection("wallets").doc(uid);
 
     walletRef.get().then(doc => {
       let oldBalance = doc.data().balance || 0;
