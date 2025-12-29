@@ -3,6 +3,12 @@
 <head>
 <title>Wallet - Roj Bachat</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
 body{font-family:Arial;background:#f2f2f2;margin:0;}
 .header{background:#007bff;padding:18px;color:white;font-size:22px;text-align:center;}
@@ -26,10 +32,78 @@ body{font-family:Arial;background:#f2f2f2;margin:0;}
 
 <div class="card">
     <h3>Saving History</h3>
-    <div class="history-item">No transactions yet</div>
+    <div id="historyBox">
+        <div class="history-item">Loading...</div>
+    </div>
 </div>
 
 <a class="back-btn" href="index.html">Home</a>
+
+<script>
+// ------------------ FIREBASE CONFIG ------------------
+const firebaseConfig = {
+  apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
+  authDomain: "rojbachat-7e5a8.firebaseapp.com",
+  projectId: "rojbachat-7e5a8",
+  storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+  messagingSenderId: "790739371754",
+  appId: "1:790739371754:web:9b0bd71f2579d664747993"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ------------------ CHECK LOGIN ------------------
+auth.onAuthStateChanged(user => {
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+    loadWallet(user.uid);
+});
+
+// ------------------ LOAD WALLET + HISTORY ------------------
+function loadWallet(uid){
+    db.collection("users").doc(uid).onSnapshot(doc=>{
+        if (!doc.exists){
+            document.getElementById("balance").innerHTML = "₹ 0.00";
+            document.getElementById("historyBox").innerHTML =
+                `<div class='history-item'>No transactions yet</div>`;
+            return;
+        }
+
+        let data = doc.data();
+
+        // BALANCE
+        let bal = data.wallet || 0;
+        document.getElementById("balance").innerHTML = "₹ " + bal.toFixed(2);
+
+        // HISTORY
+        let history = data.walletHistory || [];
+
+        if(history.length === 0){
+            document.getElementById("historyBox").innerHTML =
+                `<div class='history-item'>No transactions yet</div>`;
+            return;
+        }
+
+        let html = "";
+        history.reverse().forEach(h=>{
+            html += `
+                <div class='history-item'>
+                    ${h.type === "add" ? "➕" : "➖"} ₹${h.amount}  
+                    <br>
+                    <small>${h.time}</small>
+                </div>
+            `;
+        });
+
+        document.getElementById("historyBox").innerHTML = html;
+    });
+}
+
+</script>
 
 </body>
 </html>
