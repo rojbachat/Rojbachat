@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Admin Panel - Roj Bachat</title>
+<title>Powerful Admin Panel - Roj Bachat</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -11,49 +11,63 @@
 <style>
 body { font-family: Arial; padding:20px; background:#f5f5f5; }
 h2 { text-align:center; }
-button { padding:8px 12px; margin:5px; border:none; border-radius:5px; cursor:pointer; }
+button { padding:6px 10px; margin:3px; border:none; border-radius:5px; cursor:pointer; }
 .logout-btn { background:red; color:white; float:right; }
 table { width:100%; border-collapse: collapse; margin-top:20px; }
-th, td { border:1px solid #333; padding:8px; text-align:center; }
-input { padding:8px; margin-top:10px; width:50%; }
-
-.box {
-  background:white;
-  padding:15px;
-  border-radius:10px;
-  box-shadow:0 0 10px #0002;
-  margin-top:20px;
-}
+th, td { border:1px solid #333; padding:6px; text-align:center; }
+input { padding:6px; margin:5px; width:40%; }
+.box { background:white; padding:15px; border-radius:10px; box-shadow:0 0 10px #0002; margin-top:20px; }
+.green-btn{background:green;color:white;}
+.blue-btn{background:#007bff;color:white;}
+.red-btn{background:red;color:white;}
 </style>
 
 </head>
 <body>
 
-<h2>Admin Panel - Roj Bachat</h2>
+<h2>Powerful Admin Panel - Roj Bachat</h2>
 <button class="logout-btn" onclick="logout()">Logout</button>
 
+<!-- Search Users -->
 <input type="text" id="searchInput" placeholder="Search user by name or email" onkeyup="searchUser()">
 
+<!-- User Table -->
 <table>
 <thead>
 <tr>
 <th>Name</th>
 <th>Email</th>
 <th>Mobile</th>
+<th>Wallet</th>
 <th>Action</th>
 </tr>
 </thead>
 <tbody id="userTable"></tbody>
 </table>
 
+<!-- Withdraw Requests -->
+<div class="box">
+<h3>Withdraw Requests</h3>
+<table>
+<thead>
+<tr>
+<th>User</th>
+<th>Amount</th>
+<th>UPI</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="withdrawTable"></tbody>
+</table>
+</div>
 
-<!-- ========================= NEW COMMODITY SECTION ========================= -->
+<!-- Commodity Manager -->
 <div class="box">
 <h3>Commodity Manager</h3>
-
 <input type="text" id="cName" placeholder="Commodity Name (Gehu)">
 <input type="number" id="cPrice" placeholder="Current Price per KG">
-<button onclick="addCommodity()" style="background:green;color:white;">Add / Update</button>
+<button onclick="addCommodity()" class="green-btn">Add / Update</button>
 
 <h3>Commodity List</h3>
 <table>
@@ -68,10 +82,9 @@ input { padding:8px; margin-top:10px; width:50%; }
 <tbody id="commodityTable"></tbody>
 </table>
 </div>
-<!-- ======================================================================== -->
-
 
 <script>
+// ---------------- Firebase Config ----------------
 const firebaseConfig = {
     apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
     authDomain: "rojbachat-7e5a8.firebaseapp.com",
@@ -85,155 +98,185 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-
-// ------------------- ADMIN AUTH CHECK -------------------
-auth.onAuthStateChanged((user)=>{
-    if(!user) {
-        window.location.href = "login.html";
-        return;
-    }
+// ---------------- Admin Auth ----------------
+auth.onAuthStateChanged(user=>{
+    if(!user){ window.location.href="login.html"; return; }
     if(user.email !== "rojbachat.admin@gmail.com"){
-        alert("You are not Admin!");
-        window.location.href = "index.html";
+        alert("You are not Admin!"); window.location.href="index.html";
     }
 });
 
-// ------------------- LOGOUT -------------------
-function logout(){
-    auth.signOut().then(()=>window.location.href="login.html");
-}
+// ---------------- Logout ----------------
+function logout(){ auth.signOut().then(()=>window.location.href="login.html"); }
 
-// ------------------- LOAD USERS -------------------
+// ---------------- Load Users ----------------
 let allUsers = [];
 db.collection("users").onSnapshot(snapshot=>{
     allUsers = [];
     let html = "";
     snapshot.forEach(doc=>{
-        let data = doc.data();
-        data.id = doc.id;
-        allUsers.push(data);
+        let data = doc.data(); data.id = doc.id; allUsers.push(data);
         html += `<tr>
-            <td>${data.name || "-"}</td>
+            <td>${data.name||"-"}</td>
             <td>${data.email}</td>
-            <td>${data.mobile || "-"}</td>
+            <td>${data.mobile||"-"}</td>
+            <td>₹${data.wallet||0}</td>
             <td>
-                <button onclick="viewUser('${doc.id}')">View</button>
-                <button onclick="deleteUser('${doc.id}')">Delete</button>
+                <button onclick="viewUser('${doc.id}')" class="blue-btn">View</button>
+                <button onclick="deleteUser('${doc.id}')" class="red-btn">Delete</button>
+                <button onclick="addMoney('${doc.id}')" class="green-btn">Add Money</button>
+                <button onclick="removeMoney('${doc.id}')" class="red-btn">Remove Money</button>
             </td>
         </tr>`;
     });
     document.getElementById("userTable").innerHTML = html;
 });
 
-// ------------------- VIEW USER -------------------
+// ---------------- View User ----------------
 function viewUser(id){
-    let user = allUsers.find(u=>u.id === id);
+    let user = allUsers.find(u=>u.id===id);
     if(user){
         alert(
-            `Name: ${user.name || "-"}\nEmail: ${user.email}\nMobile: ${user.mobile || "-"}\nBank: ${user.bank || "-"}\nPAN: ${user.pan || "-"}\nAadhaar: ${user.aadhaar || "-"}\nUPI: ${user.upi || "-"}`
+`Name: ${user.name||"-"}
+Email: ${user.email}
+Mobile: ${user.mobile||"-"}
+Wallet: ₹${user.wallet||0}
+Bank: ${user.bank||"-"}
+PAN: ${user.pan||"-"}
+Aadhaar: ${user.aadhaar||"-"}
+UPI: ${user.upi||"-"}`
         );
     }
 }
 
-// ------------------- DELETE USER -------------------
+// ---------------- Delete User ----------------
 function deleteUser(id){
-    if(confirm("Are you sure to delete this user?")){
-        db.collection("users").doc(id).delete()
-        .then(()=>alert("User deleted successfully"))
-        .catch(err=>alert(err.message));
+    if(confirm("Delete user?")){
+        db.collection("users").doc(id).delete().then(()=>alert("Deleted")).catch(err=>alert(err.message));
     }
 }
 
-// ------------------- SEARCH USER -------------------
+// ---------------- Add / Remove Money ----------------
+function addMoney(uid){
+    let amt = prompt("Enter amount to ADD:");
+    amt = Number(amt); if(amt<=0){alert("Invalid amount");return;}
+    let ref = db.collection("users").doc(uid);
+    db.runTransaction(t=>t.get(ref).then(doc=>{
+        let oldBal = doc.data().wallet||0;
+        t.update(ref,{wallet:oldBal+amt});
+        let histRef = ref.collection("history").doc();
+        t.set(histRef,{type:"admin_add",amount:amt,time:new Date().toISOString()});
+    })).then(()=>alert("Money added!")).catch(err=>alert(err.message));
+}
+
+function removeMoney(uid){
+    let amt = prompt("Enter amount to REMOVE:");
+    amt = Number(amt); if(amt<=0){alert("Invalid amount");return;}
+    let ref = db.collection("users").doc(uid);
+    db.runTransaction(t=>t.get(ref).then(doc=>{
+        let oldBal = doc.data().wallet||0;
+        if(oldBal<amt){alert("Insufficient balance"); throw "error";}
+        t.update(ref,{wallet:oldBal-amt});
+        let histRef = ref.collection("history").doc();
+        t.set(histRef,{type:"admin_remove",amount:amt,time:new Date().toISOString()});
+    })).then(()=>alert("Money removed!")).catch(err=>{}); 
+}
+
+// ---------------- Search Users ----------------
 function searchUser(){
     let input = document.getElementById("searchInput").value.toLowerCase();
     let html = "";
     allUsers.forEach(u=>{
-        if((u.name && u.name.toLowerCase().includes(input)) || 
-           (u.email && u.email.toLowerCase().includes(input))){
+        if((u.name&&u.name.toLowerCase().includes(input))||(u.email&&u.email.toLowerCase().includes(input))){
             html += `<tr>
-                <td>${u.name || "-"}</td>
-                <td>${u.email}</td>
-                <td>${u.mobile || "-"}</td>
-                <td>
-                    <button onclick="viewUser('${u.id}')">View</button>
-                    <button onclick="deleteUser('${u.id}')">Delete</button>
-                </td>
+            <td>${u.name||"-"}</td>
+            <td>${u.email}</td>
+            <td>${u.mobile||"-"}</td>
+            <td>₹${u.wallet||0}</td>
+            <td>
+                <button onclick="viewUser('${u.id}')" class="blue-btn">View</button>
+                <button onclick="deleteUser('${u.id}')" class="red-btn">Delete</button>
+                <button onclick="addMoney('${u.id}')" class="green-btn">Add Money</button>
+                <button onclick="removeMoney('${u.id}')" class="red-btn">Remove Money</button>
+            </td>
             </tr>`;
         }
     });
     document.getElementById("userTable").innerHTML = html;
 }
 
-
-
-// ======================================================================
-//                    COMMODITY ADMIN FUNCTIONS
-// ======================================================================
-
-// ADD OR UPDATE COMMODITY
+// ---------------- Commodity Manager ----------------
 function addCommodity(){
     let name = document.getElementById("cName").value.trim().toLowerCase();
     let price = Number(document.getElementById("cPrice").value);
-
-    if(name.length < 2 || price <= 0){
-        alert("Enter valid name and price");
-        return;
-    }
-
+    if(name.length<2||price<=0){alert("Enter valid data");return;}
     db.collection("commodities").doc(name).set({
-        name: name.charAt(0).toUpperCase() + name.slice(1),
-        price: price,
-        updatedAt: new Date().toISOString()
-    })
-    .then(()=> alert("Commodity Added / Updated Successfully"))
-    .catch(err=> alert(err.message));
-
-    document.getElementById("cName").value = "";
-    document.getElementById("cPrice").value = "";
+        name:name.charAt(0).toUpperCase()+name.slice(1),
+        price:price,
+        updatedAt:new Date().toISOString()
+    }).then(()=>alert("Commodity Added/Updated")).catch(err=>alert(err.message));
+    document.getElementById("cName").value="";document.getElementById("cPrice").value="";
 }
 
-
-// LOAD ALL COMMODITIES
+// Load commodities
 db.collection("commodities").onSnapshot(snapshot=>{
-    let html = "";
-    snapshot.forEach(doc=>{
-        let d = doc.data();
-
-        html += `
-        <tr>
-            <td>${d.name}</td>
-            <td>₹${d.price}</td>
-            <td>${d.updatedAt?.slice(0,10)}</td>
-            <td>
-                <button onclick="prefill('${doc.id}', ${d.price})">Edit</button>
-                <button onclick="deleteCommodity('${doc.id}')">Delete</button>
-            </td>
-        </tr>
-        `;
+    let html=""; snapshot.forEach(doc=>{
+        let d=doc.data();
+        html+=`<tr>
+        <td>${d.name}</td>
+        <td>₹${d.price}</td>
+        <td>${d.updatedAt?.slice(0,10)||"-"}</td>
+        <td>
+            <button onclick="prefill('${doc.id}',${d.price})" class="blue-btn">Edit</button>
+            <button onclick="deleteCommodity('${doc.id}')" class="red-btn">Delete</button>
+        </td>
+        </tr>`;
     });
-
-    document.getElementById("commodityTable").innerHTML = html;
+    document.getElementById("commodityTable").innerHTML=html;
 });
 
-
-// PREFILL FOR EDIT
-function prefill(id, price){
-    document.getElementById("cName").value = id;
-    document.getElementById("cPrice").value = price;
+function prefill(id,price){
+    document.getElementById("cName").value=id;
+    document.getElementById("cPrice").value=price;
 }
-
-
-// DELETE COMMODITY
 function deleteCommodity(id){
-    if(confirm("Delete commodity?")){
-        db.collection("commodities").doc(id).delete()
-        .then(()=> alert("Deleted Successfully"))
-        .catch(err=> alert(err.message));
-    }
+    if(confirm("Delete commodity?")) db.collection("commodities").doc(id).delete().then(()=>alert("Deleted")).catch(err=>alert(err.message));
 }
 
+// ---------------- Withdraw Requests ----------------
+db.collection("withdraw_requests").onSnapshot(snapshot=>{
+    let html=""; snapshot.forEach(doc=>{
+        let d=doc.data();
+        html+=`<tr>
+        <td>${d.uid}</td>
+        <td>₹${d.amount}</td>
+        <td>${d.upi}</td>
+        <td>${d.status}</td>
+        <td>`;
+        if(d.status=="pending"){
+            html+=`<button onclick="approveWithdraw('${doc.id}',${d.amount},'${d.uid}')" class="green-btn">Approve</button>
+            <button onclick="rejectWithdraw('${doc.id}')" class="red-btn">Reject</button>`;
+        }
+        html+=`</td></tr>`;
+    });
+    document.getElementById("withdrawTable").innerHTML=html;
+});
+
+function approveWithdraw(id,amount,uid){
+    let userRef=db.collection("users").doc(uid);
+    db.runTransaction(t=>t.get(userRef).then(doc=>{
+        let bal=doc.data().wallet||0;
+        if(bal<amount){alert("Insufficient balance");throw "error";}
+        t.update(userRef,{wallet:bal-amount});
+        t.update(db.collection("withdraw_requests").doc(id),{status:"approved"});
+        t.set(userRef.collection("history").doc(),{type:"withdraw",amount:amount,time:new Date().toISOString()});
+    })).then(()=>alert("Withdraw approved")).catch(err=>{});
+}
+
+function rejectWithdraw(id){
+    db.collection("withdraw_requests").doc(id).update({status:"rejected"}).then(()=>alert("Withdraw rejected"));
+}
 </script>
 
 </body>
-    </html>
+  </html>
