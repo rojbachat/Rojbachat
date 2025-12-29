@@ -73,9 +73,7 @@
         cursor: pointer;
     }
 
-    .menu-item:hover {
-        background: rgba(255,255,255,0.1);
-    }
+    .menu-item:hover { background: rgba(255,255,255,0.1); }
 
     /* ------- MAIN CONTENT ------- */
     .container {
@@ -109,9 +107,7 @@
         font-size: 17px;
     }
 
-    .commodity-item:last-child {
-        border-bottom: none;
-    }
+    .commodity-item:last-child { border-bottom: none; }
 
     /* ------- BOTTOM NAV ------- */
     .bottom-nav {
@@ -136,14 +132,10 @@
         color: #00FF99;
     }
 
-    .nav-item i {
-        font-size: 32px;
-    }
+    .nav-item i { font-size: 32px; }
 
     /* Middle big trading icon */
-    .nav-big {
-        transform: scale(1.45);
-    }
+    .nav-big { transform: scale(1.45); }
 
     .nav-text {
         font-size: 11px;
@@ -163,6 +155,7 @@
 
     <div class="menu-item" onclick="location.href='daily-saving.html'">Daily Saving</div>
     <div class="menu-item" onclick="location.href='profile.html'">Profile</div>
+    <div class="menu-item" onclick="location.href='history.html'">History</div>
     <div class="menu-item" onclick="location.href='referral.html'">Referral</div>
     <div class="menu-item" onclick="location.href='terms.html'">Terms & Conditions</div>
     <div class="menu-item" onclick="location.href='privacy.html'">Privacy Policy</div>
@@ -197,12 +190,12 @@
 
 </div>
 
-<!-- -------- BOTTOM NAV (middle icon only big) -------- -->
+<!-- -------- BOTTOM NAV (Middle = Trading Big Icon) -------- -->
 <div class="bottom-nav">
 
-    <div class="nav-item" onclick="location.href='profile.html'">
-        <i class="material-icons-round">person</i>
-        <div class="nav-text">Profile</div>
+    <div class="nav-item" onclick="location.href='add-money.html'">
+        <i class="material-icons-round">account_balance_wallet</i>
+        <div class="nav-text">Add</div>
     </div>
 
     <div class="nav-item nav-big" onclick="location.href='group.html'">
@@ -210,9 +203,9 @@
         <div class="nav-text">Trading</div>
     </div>
 
-    <div class="nav-item" onclick="location.href='history.html'">
-        <i class="material-icons-round">history</i>
-        <div class="nav-text">History</div>
+    <div class="nav-item" onclick="location.href='withdraw.html'">
+        <i class="material-icons-round">payments</i>
+        <div class="nav-text">Withdraw</div>
     </div>
 
 </div>
@@ -232,13 +225,13 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// MENU TOGGLE
+// MENU OPEN/CLOSE
 function toggleMenu() {
     let menu = document.getElementById("sideMenu");
     menu.style.left = (menu.style.left === "0px") ? "-260px" : "0px";
 }
 
-// AUTH CHECK + COMMODITIES
+// AUTH + COMMODITIES
 auth.onAuthStateChanged((user) => {
     if (!user) location.href = "login.html";
     else {
@@ -263,8 +256,10 @@ auth.onAuthStateChanged((user) => {
 });
 
 // LOGOUT
-function logout() { auth.signOut().then(() => location.href = "login.html"); }
+function logout() {
+    auth.signOut().then(() => location.href = "login.html");
+}
 </script>
 
 </body>
-    </html>
+</html>
