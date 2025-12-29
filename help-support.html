@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Help & Support - RojBachat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #f4f6f9;
+    padding: 20px;
+}
+
+.header {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #4A90E2;
+    margin-bottom: 20px;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+}
+
+.input-box {
+    width: 100%;
+    padding: 12px;
+    font-size: 17px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    margin-bottom: 12px;
+}
+
+.btn {
+    width: 100%;
+    padding: 14px;
+    background: #4A90E2;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.ticket {
+    margin-top: 20px;
+    padding: 15px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+}
+
+.reply-box {
+    margin-top: 10px;
+    background: #e1f5ff;
+    padding: 10px;
+    border-left: 4px solid #4A90E2;
+    border-radius: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">Help & Support</div>
+
+<div class="card">
+    <input type="text" id="subject" class="input-box" placeholder="Enter your issue subject">
+
+    <textarea id="message" class="input-box" style="height:120px;" placeholder="Describe your issue..."></textarea>
+
+    <button class="btn" onclick="submitTicket()">Submit Ticket</button>
+</div>
+
+<h3 style="margin-top:25px;color:#4A90E2;">Your Tickets</h3>
+<div id="myTickets">Loading...</div>
+
+<script>
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyC98Lxjn6jn-V9NQjcOGluL04EAX4kzpmY",
+  authDomain: "rojbachat-7e5a8.firebaseapp.com",
+  projectId: "rojbachat-7e5a8",
+  storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+  messagingSenderId: "790739371754",
+  appId: "1:790739371754:web:9b0bd71f2579d664747993"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// SUBMIT TICKET
+function submitTicket() {
+    let subject = document.getElementById("subject").value.trim();
+    let message = document.getElementById("message").value.trim();
+
+    if (subject === "" || message === "") {
+        alert("Please fill all fields");
+        return;
+    }
+
+    const user = auth.currentUser;
+
+    db.collection("supportTickets").add({
+        uid: user.uid,
+        email: user.email,
+        subject,
+        message,
+        reply: "",
+        time: Date.now()
+    }).then(() => {
+        alert("Your ticket has been submitted!");
+        document.getElementById("subject").value = "";
+        document.getElementById("message").value = "";
+    });
+}
+
+// LOAD USER'S TICKETS
+auth.onAuthStateChanged(user => {
+    if (!user) return location.href = "login.html";
+
+    db.collection("supportTickets")
+      .where("uid", "==", user.uid)
+      .orderBy("time", "desc")
+      .onSnapshot(snapshot => {
+        let html = "";
+        snapshot.forEach(doc => {
+            let t = doc.data();
+            html += `
+                <div class="ticket">
+                    <b>${t.subject}</b><br>
+                    <small>${t.message}</small>
+                    ${t.reply ? `<div class='reply-box'><b>Admin Reply:</b><br>${t.reply}</div>` : ""}
+                </div>
+            `;
+        });
+        document.getElementById("myTickets").innerHTML = html;
+    });
+});
+</script>
+
+</body>
+</html>
