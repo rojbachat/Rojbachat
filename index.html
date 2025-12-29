@@ -5,6 +5,10 @@
 <title>Roj Bachat – Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<!-- Material Icons -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp" rel="stylesheet">
+
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -13,102 +17,131 @@
 <style>
     body {
         margin: 0;
-        font-family: Arial, sans-serif;
         background: #f4f6f9;
+        font-family: Arial, sans-serif;
     }
 
-    /* --------- TOP BAR --------- */
+    /* ------- TOP BAR ------- */
     .top-bar {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
-        height: 60px;
+        height: 65px;
         background: #4A90E2;
         display: flex;
-        align-items: center;
         justify-content: space-between;
-        padding: 0 15px;
+        align-items: center;
+        padding: 0 18px;
         color: white;
-        z-index: 999;
+        z-index: 1000;
     }
 
     .icon-btn {
-        font-size: 28px;
+        font-size: 30px;
         cursor: pointer;
     }
 
-    /* WALLET BOX CENTER */
     .wallet-box {
         background: white;
-        width: 140px;
-        padding: 6px;
-        border-radius: 10px;
-        text-align: center;
         color: #4A90E2;
-        font-size: 16px;
+        padding: 6px 15px;
+        border-radius: 12px;
+        font-size: 17px;
         font-weight: bold;
-        box-shadow: 0 2px 7px rgba(0,0,0,0.2);
+        box-shadow: 0 2px 7px rgba(0,0,0,0.25);
     }
 
-    /* --------- MAIN CONTENT --------- */
+    /* ------- MAIN CONTENT ------- */
     .container {
-        padding: 80px 20px 100px;
+        padding: 85px 20px 110px;
     }
 
     .card {
         background: white;
-        padding: 20px;
+        padding: 18px;
         border-radius: 12px;
-        margin-bottom: 15px;
         text-align: center;
+        font-size: 18px;
         box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        margin-bottom: 15px;
     }
 
-    /* Buttons (hidden text, for logic only) */
-    .menu-btn {
-        display: none;
+    .menu-btn { display: none; }
+
+    /* COMMODITIES LIST */
+    .commodity-box {
+        background: white;
+        padding: 15px;
+        margin-top: 10px;
+        border-radius: 10px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.15);
     }
 
-    /* --------- BOTTOM NAVIGATION --------- */
+    .commodity-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid #ddd;
+        font-size: 17px;
+    }
+
+    .commodity-item:last-child {
+        border-bottom: none;
+    }
+
+    /* ------- BOTTOM NAV ------- */
     .bottom-nav {
         position: fixed;
         bottom: 0;
         left: 0;
         right: 0;
-        height: 70px;
-        background: white;
+        height: 75px;
+        background: #ffffff;
         display: flex;
         justify-content: space-around;
         align-items: center;
-        box-shadow: 0 -3px 10px rgba(0,0,0,0.1);
-        z-index: 999;
+        box-shadow: 0 -3px 15px rgba(0,0,0,0.15);
+        z-index: 1000;
     }
 
     .nav-item {
-        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         cursor: pointer;
-        font-size: 30px;
         color: #4A90E2;
     }
 
+    .nav-item i {
+        font-size: 32px;
+    }
+
+    .nav-text {
+        font-size: 10px;
+        margin-top: -3px;
+    }
 </style>
 </head>
 
 <body>
 
-<!-- ------------ TOP BAR ------------- -->
+<!-- -------- TOP BAR -------- -->
 <div class="top-bar">
-    <div class="icon-btn" onclick="location.href='profile.html'">👤</div>
+    <div class="icon-btn" onclick="location.href='profile.html'">
+        <i class="material-icons-round">person</i>
+    </div>
 
     <div class="wallet-box">
         ₹ <span id="walletBalance">0</span>
     </div>
 
-    <div class="icon-btn" onclick="logout()">🚪</div>
+    <div class="icon-btn" onclick="logout()">
+        <i class="material-icons-round">logout</i>
+    </div>
 </div>
 
-<!-- ------------ MAIN CONTENT ------------- -->
+<!-- -------- MAIN CONTENT -------- -->
 <div class="container">
 
     <div class="card">
@@ -116,27 +149,48 @@
         <div id="userEmail">Loading...</div>
     </div>
 
-    <!-- ORIGINAL BUTTONS (LOGIC SAFE) -->
-    <button class="menu-btn" onclick="location.href='daily-saving.html'">DS</button>
-    <button class="menu-btn" onclick="location.href='add-money.html'">AM</button>
-    <button class="menu-btn" onclick="location.href='pay.html'">P</button>
-    <button class="menu-btn" onclick="location.href='withdraw.html'">W</button>
-    <button class="menu-btn" onclick="location.href='history.html'">H</button>
-    <button class="menu-btn" onclick="location.href='group.html'">G</button>
-    <button class="menu-btn" onclick="location.href='profile.html'">PF</button>
-    <button class="menu-btn logout" onclick="logout()">L</button>
+    <!-- -------- COMMODITIES LIST (from group.html) -------- -->
+    <div class="commodity-box">
+        <h3 style="margin:0 0 10px 0;color:#4A90E2;text-align:center;">
+            Live Commodities
+        </h3>
+        <div id="commodityList">Loading...</div>
+    </div>
 
 </div>
 
-<!-- ------------ BOTTOM NAVIGATION BAR ------------- -->
+<!-- -------- BOTTOM NAV -------- -->
 <div class="bottom-nav">
-    <div class="nav-item" onclick="location.href='group.html'">📈</div>
-    <div class="nav-item" onclick="location.href='history.html'">📜</div>
-    <div class="nav-item" onclick="location.href='withdraw.html'">💸</div>
+
+    <div class="nav-item" onclick="location.href='daily-saving.html'">
+        <i class="material-icons-sharp">calendar_month</i>
+        <div class="nav-text">Saving</div>
+    </div>
+
+    <div class="nav-item" onclick="location.href='group.html'">
+        <i class="material-icons-sharp">insights</i>
+        <div class="nav-text">Trading</div>
+    </div>
+
+    <div class="nav-item" onclick="location.href='add-money.html'">
+        <i class="material-icons-round">account_balance_wallet</i>
+        <div class="nav-text">Add</div>
+    </div>
+
+    <div class="nav-item" onclick="location.href='withdraw.html'">
+        <i class="material-icons-round">payments</i>
+        <div class="nav-text">Withdraw</div>
+    </div>
+
+    <div class="nav-item" onclick="location.href='history.html'">
+        <i class="material-icons-round">history</i>
+        <div class="nav-text">History</div>
+    </div>
+
 </div>
 
 <script>
-// ---------------- Firebase Config ----------------
+// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
   authDomain: "rojbachat-7e5a8.firebaseapp.com",
@@ -150,29 +204,41 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// ---------------- AUTH CHECK ----------------
+// AUTH CHECK + WALLET
 auth.onAuthStateChanged((user) => {
-    if (!user) {
-        window.location.href = "login.html";
-    } else {
+    if (!user) location.href = "login.html";
+    else {
         document.getElementById("userEmail").innerText = user.email;
 
-        // Load Wallet Balance Live
-        db.collection("wallets").doc(user.uid).onSnapshot(doc => {
+        db.collection("wallets").doc(user.uid)
+        .onSnapshot(doc => {
             if (doc.exists) {
                 document.getElementById("walletBalance").innerText = doc.data().balance || 0;
             }
         });
+
+        // ---- GET COMMODITIES (same as group.html) ----
+        db.collection("commodities")
+        .orderBy("name")
+        .onSnapshot(snapshot => {
+            let html = "";
+            snapshot.forEach(doc => {
+                let d = doc.data();
+                html += `
+                    <div class="commodity-item">
+                        <span>${d.name}</span>
+                        <span>₹${d.price}</span>
+                    </div>
+                `;
+            });
+            document.getElementById("commodityList").innerHTML = html;
+        });
     }
 });
 
-// ---------------- LOGOUT ----------------
-function logout() {
-    auth.signOut().then(() => {
-        window.location.href = "login.html";
-    });
-}
+// LOGOUT
+function logout() { auth.signOut().then(() => location.href = "login.html"); }
 </script>
 
 </body>
-        </html>
+</html>
