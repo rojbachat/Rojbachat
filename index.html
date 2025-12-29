@@ -28,7 +28,7 @@
         left: 0;
         right: 0;
         height: 65px;
-        background: #4A90E2;
+        background: #2D1052;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -44,7 +44,7 @@
 
     .wallet-box {
         background: white;
-        color: #4A90E2;
+        color: #2D1052;
         padding: 6px 15px;
         border-radius: 12px;
         font-size: 17px;
@@ -110,7 +110,7 @@
         flex-direction: column;
         align-items: center;
         cursor: pointer;
-        color: #4A90E2;
+        color: #2D1052;
     }
 
     .nav-item i {
@@ -151,7 +151,7 @@
 
     <!-- -------- COMMODITIES LIST (from group.html) -------- -->
     <div class="commodity-box">
-        <h3 style="margin:0 0 10px 0;color:#4A90E2;text-align:center;">
+        <h3 style="margin:0 0 10px 0;color:#2D1052;text-align:center;">
             Live Commodities
         </h3>
         <div id="commodityList">Loading...</div>
@@ -210,6 +210,7 @@ auth.onAuthStateChanged((user) => {
     else {
         document.getElementById("userEmail").innerText = user.email;
 
+        // LIVE WALLET (wallet.html ke same logic)
         db.collection("wallets").doc(user.uid)
         .onSnapshot(doc => {
             if (doc.exists) {
@@ -217,7 +218,7 @@ auth.onAuthStateChanged((user) => {
             }
         });
 
-        // ---- GET COMMODITIES (same as group.html) ----
+        // ---- COMMODITIES (same as group.html) ----
         db.collection("commodities")
         .orderBy("name")
         .onSnapshot(snapshot => {
@@ -241,4 +242,4 @@ function logout() { auth.signOut().then(() => location.href = "login.html"); }
 </script>
 
 </body>
-</html>
+        </html>
