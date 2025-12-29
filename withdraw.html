@@ -1,3 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Withdraw - Roj Bachat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        h2 { text-align: center; }
+        .wallet-box { background:#007bff; color:white; padding:15px; border-radius:10px; text-align:center; font-size:20px; margin-bottom:20px; }
+        .box { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #0002; }
+        input, button {
+            width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #aaa;
+            font-size:16px;
+        }
+        button { background: #e53935; color:white; border:none; cursor:pointer; }
+        #msg { margin-top:10px; font-weight:bold; text-align:center; }
+    </style>
+</head>
+<body>
+
+<h2>Withdraw Money</h2>
+
+<div class="wallet-box">Wallet Balance: ₹<span id="walletBalance">0</span></div>
+
+<div class="box">
+    <input type="number" id="amountInput" placeholder="Enter amount to withdraw">
+    <input type="text" id="upiInput" placeholder="Your UPI ID (example@upi)">
+    <button onclick="withdraw()">Submit Withdraw Request</button>
+    <div id="msg"></div>
+</div>
+
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
@@ -12,69 +49,77 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// ---------------- Wallet Balance -----------------
-auth.onAuthStateChanged((user)=>{
-    if(!user) window.location.href="login.html";
-    else loadBalance();
+let uid = null;
+
+// User login check
+auth.onAuthStateChanged(user => {
+    if(!user){
+        window.location.href="login.html";
+    } else {
+        uid = user.uid;
+        loadWallet();
+    }
 });
 
-function loadBalance(){
-    db.collection("users").doc(auth.currentUser.uid)
-    .onSnapshot(doc => {
-        document.getElementById("walletBalance").innerText = doc.data().wallet || 0;
+// Load wallet balance in realtime
+function loadWallet(){
+    db.collection("users").doc(uid).onSnapshot(doc=>{
+        if(doc.exists){
+            document.getElementById("walletBalance").innerText = doc.data().wallet || 0;
+        }
     });
 }
 
-// ---------------- Withdraw System -----------------
-async function withdraw(){
-    let amount = Number(amountInput.value);
-    let upi = upiInput.value.trim();
+// Withdraw function
+function withdraw(){
+    const amount = Number(document.getElementById("amountInput").value);
+    const upi = document.getElementById("upiInput").value.trim();
+    const msg = document.getElementById("msg");
+    msg.style.color = "red";
 
     if(amount < 100){
-        alert("Minimum withdrawal is ₹100");
+        msg.innerText = "Minimum withdrawal is ₹100";
         return;
     }
     if(upi.length < 5){
-        alert("Enter valid UPI ID");
+        msg.innerText = "Enter valid UPI ID";
         return;
     }
 
-    const userRef = db.collection("users").doc(auth.currentUser.uid);
-    const userDoc = await userRef.get();
-    let currentBalance = userDoc.data().wallet || 0;
+    const userRef = db.collection("users").doc(uid);
 
-    if(amount > currentBalance){
-        alert("Insufficient Wallet Balance");
-        return;
-    }
+    db.runTransaction(async t => {
+        const doc = await t.get(userRef);
+        const walletBal = doc.exists ? doc.data().wallet || 0 : 0;
 
-    // 1️⃣ Wallet Deduct
-    await userRef.update({
-        wallet: currentBalance - amount
+        if(walletBal < amount){
+            throw "Insufficient balance!";
+        }
+
+        // Deduct wallet
+        t.update(userRef, { wallet: walletBal - amount });
+
+        // Save withdraw request
+        const withdrawRef = db.collection("withdraw_requests").doc();
+        t.set(withdrawRef, {
+            uid: uid,
+            amount: amount,
+            upi: upi,
+            status: "pending",
+            timestamp: new Date().toISOString()
+        });
+    })
+    .then(()=>{
+        msg.style.color = "green";
+        msg.innerText = "Withdraw request submitted successfully!";
+        document.getElementById("amountInput").value = "";
+        document.getElementById("upiInput").value = "";
+    })
+    .catch(err=>{
+        msg.innerText = "Error: " + err;
     });
-
-    // 2️⃣ Wallet History Entry
-    await db.collection("users")
-    .doc(auth.currentUser.uid)
-    .collection("history")
-    .add({
-        type: "withdraw",
-        amount: amount,
-        method: upi,
-        timestamp: Date.now()
-    });
-
-    // 3️⃣ Withdraw Request Admin Panel
-    await db.collection("withdraw_requests").add({
-        uid: auth.currentUser.uid,
-        amount: amount,
-        upi: upi,
-        status: "pending",
-        timestamp: Date.now()
-    });
-
-    alert("Withdraw request submitted!");
-    amountInput.value = "";
-    upiInput.value = "";
 }
-                               </script>
+</script>
+
+</body>
+</html>
