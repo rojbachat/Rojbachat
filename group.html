@@ -10,8 +10,6 @@ body{
     font-family: 'Segoe UI', Arial;
     background:#eef1f6;
 }
-
-/* HEADER */
 .header{
     background:#0059d6;
     padding:18px;
@@ -22,7 +20,6 @@ body{
     box-shadow:0 2px 6px #0003;
 }
 
-/* CARDS */
 .card{
     background:white;
     margin:15px;
@@ -31,12 +28,12 @@ body{
     box-shadow:0 3px 10px #0002;
 }
 
-/* LABEL & INPUT */
 .label{
     font-size:16px;
     font-weight:600;
     margin-bottom:6px;
 }
+
 .input{
     width:100%;
     padding:12px;
@@ -47,7 +44,6 @@ body{
     outline:none;
 }
 
-/* PRICE DISPLAY */
 .price{
     color:#0059d6;
     font-weight:bold;
@@ -55,12 +51,11 @@ body{
     padding:8px 0;
 }
 
-/* BUTTONS */
 .row{
     display:flex;
     justify-content:space-between;
-    flex-wrap:wrap;
 }
+
 .btn{
     width:48%;
     padding:14px;
@@ -70,12 +65,11 @@ body{
     color:white;
     font-weight:bold;
     cursor:pointer;
-    margin-top:10px;
 }
+
 .buy-btn{ background:#1aa156; box-shadow:0 3px 8px #1aa15655; }
 .sell-btn{ background:#e03333; box-shadow:0 3px 8px #e0333355; }
 
-/* HOLDINGS */
 .holding-box{
     background:white;
     padding:15px;
@@ -83,6 +77,7 @@ body{
     border-radius:15px;
     box-shadow:0 3px 10px #0002;
 }
+
 .h-item{
     background:#f5f7fb;
     padding:12px;
@@ -91,21 +86,13 @@ body{
     font-size:16px;
     display:flex;
     justify-content:space-between;
-    flex-wrap:wrap;
-}
-.total-box{
-    background:#dfe7ff;
-    padding:12px;
-    margin:10px 0;
-    border-radius:10px;
-    font-weight:bold;
-    text-align:right;
+    flex-direction:column;
 }
 
-/* MOBILE RESPONSIVE */
-@media screen and (max-width: 600px){
-    .btn{ width:100%; margin-top:10px; }
-    .row{ flex-direction:column; }
+#totalInvestment{
+    margin-top:5px;
+    font-size:16px;
+    font-weight:600;
 }
 </style>
 </head>
@@ -114,11 +101,8 @@ body{
 
 <div class="header">Trading Market</div>
 
-<!-- WALLET + BUY/SELL -->
+<!-- SELECT COMMODITY -->
 <div class="card">
-    <label class="label">Wallet Balance</label>
-    <h2 id="walletBalance">₹0.00</h2>
-
     <label class="label">Select Commodity</label>
     <select id="commodity" class="input"></select>
 
@@ -138,10 +122,10 @@ body{
     <h3>Your Holdings</h3>
     <div id="holdings">No holdings yet</div>
 
-    <div class="total-box">Total Investment: ₹<span id="totalInvestment">0.00</span></div>
-
-    <h3>Total Profit / Loss</h3>
+    <h3 style="margin-top:18px;">Total Profit / Loss</h3>
     <h2 id="plValue">₹0.00</h2>
+
+    <p id="totalInvestment">Total Investment: ₹0.00</p>
 </div>
 
 <!-- Firebase Scripts -->
@@ -159,38 +143,29 @@ const firebaseConfig = {
   messagingSenderId: "790739371754",
   appId: "1:790739371754:web:9b0bd71f2579d664747993"
 };
+
 firebase.initializeApp(firebaseConfig);
 
 const db = firebase.firestore();
 const auth = firebase.auth();
 let uid = null;
 
-// ---------------- LOGIN CHECK ----------------
+// -------------- LOGIN CHECK ----------------
 auth.onAuthStateChanged(user => {
-    if (!user) {
-        console.log("User not logged in");
-        return; // No redirect
+    if (!user) { 
+        console.log("User not logged in — staying on page.");
+        return;
     }
     uid = user.uid;
-    loadWallet();
     loadCommodities();
     loadHoldings();
 });
 
-// ---------------- LOAD WALLET ----------------
-function loadWallet(){
-    db.collection("users").doc(uid).onSnapshot(doc=>{
-        if(!doc.exists) return;
-        let bal = doc.data().wallet || 0;
-        document.getElementById("walletBalance").innerHTML = "₹" + bal.toFixed(2);
-    });
-}
-
 // ---------------- LOAD COMMODITIES ----------------
 function loadCommodities(){
-    db.collection("commodities").onSnapshot(snap=>{
+    db.collection("commodities").onSnapshot(snap => {
         let html = "";
-        snap.forEach(doc=>{
+        snap.forEach(doc => {
             html += `<option value="${doc.id}">${doc.id}</option>`;
         });
         document.getElementById("commodity").innerHTML = html;
@@ -203,46 +178,48 @@ document.getElementById("commodity").addEventListener("change", updatePrice);
 function updatePrice(){
     let item = document.getElementById("commodity").value;
     if(!item) return;
+
     db.collection("commodities").doc(item).get().then(doc=>{
-        currentPrice.innerHTML = "Price: ₹" + doc.data().price;
+        document.getElementById("currentPrice").innerHTML = "Price: ₹" + doc.data().price;
     });
 }
 
 // ---------------- BUY FUNCTION ----------------
 function buyNow(){
     let qtyVal = Number(document.getElementById("qty").value);
-    if(qtyVal <=0){ alert("Enter valid KG"); return; }
+    if(qtyVal <= 0){ alert("Enter valid KG"); return; }
+
     let item = document.getElementById("commodity").value;
 
     db.collection("commodities").doc(item).get().then(doc=>{
         let price = doc.data().price;
         let cost = qtyVal * price;
 
-        db.collection("users").doc(uid).get().then(userDoc=>{
-            let bal = userDoc.data().wallet || 0;
-            if(bal < cost){ alert("Not enough balance!"); return; }
+        db.collection("wallets").doc(uid).get().then(w=>{
+            let bal = w.exists ? w.data().balance : 0;
+
+            if(bal < cost){
+                alert("Not enough balance!");
+                return;
+            }
 
             // Deduct wallet
-            db.collection("users").doc(uid).update({
-                wallet: bal - cost
-            });
+            db.collection("wallets").doc(uid).update({ balance: bal - cost });
 
-            // Add holdings
-            let holdRef = db.collection("holdings").doc(uid).collection("items").doc(item);
-            holdRef.get().then(h=>{
+            // Update holdings
+            let ref = db.collection("holdings").doc(uid).collection("items").doc(item);
+            ref.get().then(h=>{
                 let oldQty = h.exists ? h.data().qty : 0;
                 let oldAvg = h.exists ? h.data().avgPrice : 0;
-                let newQty = oldQty + qtyVal;
-                let newAvg = oldQty + qtyVal > 0 ? ((oldAvg*oldQty + price*qtyVal)/newQty) : price;
-
-                holdRef.set({
-                    qty: newQty,
+                let newAvg = ((oldQty*oldAvg) + (qtyVal*price)) / (oldQty + qtyVal);
+                ref.set({
+                    qty: oldQty + qtyVal,
                     avgPrice: newAvg,
                     lastBuyDate: new Date().toLocaleString()
                 });
             });
 
-            alert("Purchased Successfully!");
+            alert("Purchase Successful!");
             loadHoldings();
         });
     });
@@ -251,28 +228,34 @@ function buyNow(){
 // ---------------- SELL FUNCTION ----------------
 function sellNow(){
     let qtyVal = Number(document.getElementById("qty").value);
-    if(qtyVal <=0){ alert("Enter valid KG"); return; }
+    if(qtyVal <= 0){ alert("Enter valid KG"); return; }
+
     let item = document.getElementById("commodity").value;
 
-    let holdRef = db.collection("holdings").doc(uid).collection("items").doc(item);
-    holdRef.get().then(h=>{
-        if(!h.exists || h.data().qty < qtyVal){ alert("Not enough quantity!"); return; }
+    let ref = db.collection("holdings").doc(uid).collection("items").doc(item);
+    ref.get().then(h=>{
+        if(!h.exists || h.data().qty < qtyVal){
+            alert("Not enough quantity!");
+            return;
+        }
+
         let newQty = h.data().qty - qtyVal;
 
-        db.collection("users").doc(uid).get().then(userDoc=>{
-            let price = 0;
-            db.collection("commodities").doc(item).get().then(c=>{
-                price = c.data().price;
-                let credit = qtyVal * price;
+        // Update holdings
+        if(newQty > 0){
+            ref.update({ qty: newQty });
+        } else {
+            ref.delete();
+        }
 
-                // Update wallet
-                let bal = userDoc.data().wallet || 0;
-                db.collection("users").doc(uid).update({ wallet: bal + credit });
+        // Credit wallet
+        db.collection("commodities").doc(item).get().then(c=>{
+            let price = c.data().price;
+            let credit = qtyVal * price;
 
-                // Update holdings
-                if(newQty==0) holdRef.delete();
-                else holdRef.update({ qty: newQty });
-
+            db.collection("wallets").doc(uid).get().then(w=>{
+                let bal = w.exists ? w.data().balance : 0;
+                db.collection("wallets").doc(uid).update({ balance: bal + credit });
                 alert("Sold Successfully!");
                 loadHoldings();
             });
@@ -280,47 +263,44 @@ function sellNow(){
     });
 }
 
-// ---------------- LOAD HOLDINGS + PROFIT/LOSS ----------------
-function loadHoldings(){
-    db.collection("holdings").doc(uid).collection("items").onSnapshot(snap=>{
-        let html = "";
-        let totalPL = 0;
-        let totalInvestment = 0;
+// ---------------- LOAD HOLDINGS ----------------
+async function loadHoldings(){
+    const snap = await db.collection("holdings").doc(uid).collection("items").get();
+    let html = "";
+    let totalPL = 0;
+    let totalInvestment = 0;
 
-        if(snap.empty){
-            holdings.innerHTML = "No holdings yet";
-            plValue.innerHTML = "₹0.00";
-            totalInvestmentEl.innerHTML = "0.00";
-            return;
-        }
+    if(snap.empty){
+        holdings.innerHTML = "No holdings yet";
+        plValue.innerHTML = "₹0.00";
+        document.getElementById("totalInvestment").innerHTML = "Total Investment: ₹0.00";
+        return;
+    }
 
-        snap.forEach(async doc=>{
-            let data = doc.data();
-            let qty = data.qty;
-            let avgPrice = data.avgPrice || 0;
-            totalInvestment += qty * avgPrice;
+    for(const doc of snap.docs){
+        let data = doc.data();
+        let qty = data.qty;
+        let avgPrice = data.avgPrice || 0;
+        totalInvestment += qty * avgPrice;
 
-            let c = await db.collection("commodities").doc(doc.id).get();
-            let price = c.data().price;
-            let pl = (price - avgPrice) * qty;
-            totalPL += pl;
+        let c = await db.collection("commodities").doc(doc.id).get();
+        let currentPrice = c.data().price;
+        let pl = (currentPrice - avgPrice) * qty;
+        totalPL += pl;
 
-            html += `<div class="h-item">
-                        <span>${doc.id} (${qty} KG)</span>
-                        <span>
-                            ₹${price} × ${qty} <br>
-                            Avg: ₹${avgPrice.toFixed(2)}<br>
-                            Last Buy: ${data.lastBuyDate || "-"}
-                        </span>
-                     </div>`;
-        });
+        html += `<div class="h-item">
+                    <span><b>${doc.id}</b> — ${qty} KG</span>
+                    <span>Avg Price: ₹${avgPrice.toFixed(2)}</span>
+                    <span>Last Buy: ${data.lastBuyDate || "-"}</span>
+                    <span>Current Price: ₹${currentPrice}</span>
+                 </div>`;
+    }
 
-        holdings.innerHTML = html;
-        plValue.innerHTML = "₹" + totalPL.toFixed(2);
-        document.getElementById("totalInvestment").innerHTML = totalInvestment.toFixed(2);
-    });
+    holdings.innerHTML = html;
+    plValue.innerHTML = "₹" + totalPL.toFixed(2);
+    document.getElementById("totalInvestment").innerHTML = "Total Investment: ₹" + totalInvestment.toFixed(2);
 }
 </script>
 
 </body>
-    </html>
+        </html>
