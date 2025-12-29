@@ -57,6 +57,15 @@
         z-index: 2000;
     }
 
+    .menu-close {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        font-size: 30px;
+        cursor: pointer;
+        color: white;
+    }
+
     .menu-item {
         padding: 15px 20px;
         border-bottom: 1px solid rgba(255,255,255,0.2);
@@ -124,11 +133,16 @@
         flex-direction: column;
         align-items: center;
         cursor: pointer;
-        color: #00FF99; /* Green shade */
+        color: #00FF99;
     }
 
     .nav-item i {
         font-size: 32px;
+    }
+
+    /* Middle big trading icon */
+    .nav-big {
+        transform: scale(1.45);
     }
 
     .nav-text {
@@ -143,6 +157,10 @@
 
 <!-- -------- SIDE MENU -------- -->
 <div id="sideMenu" class="side-menu">
+    <div class="menu-close" onclick="toggleMenu()">
+        <i class="material-icons-round">close</i>
+    </div>
+
     <div class="menu-item" onclick="location.href='daily-saving.html'">Daily Saving</div>
     <div class="menu-item" onclick="location.href='profile.html'">Profile</div>
     <div class="menu-item" onclick="location.href='referral.html'">Referral</div>
@@ -179,7 +197,7 @@
 
 </div>
 
-<!-- -------- BOTTOM NAV -------- -->
+<!-- -------- BOTTOM NAV (middle icon only big) -------- -->
 <div class="bottom-nav">
 
     <div class="nav-item" onclick="location.href='profile.html'">
@@ -187,19 +205,9 @@
         <div class="nav-text">Profile</div>
     </div>
 
-    <div class="nav-item" onclick="location.href='group.html'">
+    <div class="nav-item nav-big" onclick="location.href='group.html'">
         <i class="material-icons-sharp">insights</i>
         <div class="nav-text">Trading</div>
-    </div>
-
-    <div class="nav-item" onclick="location.href='add-money.html'">
-        <i class="material-icons-round">account_balance_wallet</i>
-        <div class="nav-text">Add</div>
-    </div>
-
-    <div class="nav-item" onclick="location.href='withdraw.html'">
-        <i class="material-icons-round">payments</i>
-        <div class="nav-text">Withdraw</div>
     </div>
 
     <div class="nav-item" onclick="location.href='history.html'">
@@ -259,4 +267,4 @@ function logout() { auth.signOut().then(() => location.href = "login.html"); }
 </script>
 
 </body>
-        </html>
+    </html>
