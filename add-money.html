@@ -1,122 +1,140 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Add Money - Roj Bachat</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Add Money - Roj Bachat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-  <!-- Razorpay Checkout -->
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <!-- Razorpay -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
-  <style>
-    body { font-family: Arial; background:#f5f5f5; padding:20px; }
-    .box {
-      background:white; padding:20px; border-radius:10px;
-      max-width:400px; margin:auto; box-shadow:0 0 10px #0002;
-    }
-    input, button {
-      width:100%; padding:12px; margin-top:10px; font-size:16px;
-      border-radius:5px; border:1px solid #ccc;
-    }
-    button { background:black; color:white; border:none; }
-  </style>
+    <style>
+        body { font-family: Arial; padding: 20px; background:#f4f4f4; }
+        .box { background:white; padding:20px; border-radius:10px; max-width:400px; margin:auto; }
+        input, button {
+            width:100%; padding:12px; margin-top:10px;
+            border-radius:5px; border:1px solid #ccc; font-size:16px;
+        }
+        button { background:black; color:white; border:none; }
+        .walletBox {
+            background:#000; color:white; padding:12px;
+            text-align:center; border-radius:8px; font-size:20px;
+            margin-bottom:15px;
+        }
+    </style>
 </head>
-
 <body>
 
+<div class="walletBox">
+    Wallet Balance: ₹<span id="walletBalance">0</span>
+</div>
+
 <div class="box">
-  <h2>Add Money</h2>
+    <h2>Add Money</h2>
 
-  <input type="number" id="amount" placeholder="Enter Amount (₹)" />
+    <input type="number" id="amount" placeholder="Enter Amount (₹)">
+    <button onclick="startPayment()">Add Money</button>
 
-  <button onclick="startPayment()">Add Money</button>
-
-  <p id="msg" style="color:red; margin-top:10px;"></p>
+    <p id="msg" style="color:red;"></p>
 </div>
 
 <script>
-  //---------------- FIREBASE CONFIG ----------------
-  const firebaseConfig = {
-    apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
-    authDomain: "rojbachat-7e5a8.firebaseapp.com",
-    projectId: "rojbachat-7e5a8",
-    storageBucket: "rojbachat-7e5a8.firebasestorage.app",
-    messagingSenderId: "790739371754",
-    appId: "1:790739371754:web:9b0bd71f2579d664747993"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-
-  let currentUser = null;
-
-  //----------- CHECK LOGIN -----------
-  auth.onAuthStateChanged((user) => {
-    if (!user) {
-      window.location.href = "login.html";
-    } else {
-      currentUser = user;
-    }
-  });
-
-  //----------- START PAYMENT -----------
-  function startPayment() {
-    let amt = document.getElementById("amount").value;
-    if (amt < 1) {
-      document.getElementById("msg").innerHTML = "Enter valid amount";
-      return;
-    }
-
-    let options = {
-      "key": "rzp_test_RxG5pumybpuVqy",  // <-- CHANGE THIS ONLY
-      "amount": amt * 100,
-      "currency": "INR",
-      "name": "Roj Bachat",
-      "description": "Wallet Add Money",
-      "theme": { "color": "#000000" },
-
-      // SUCCESS CALLBACK
-      "handler": function (response) {
-        updateWallet(amt);
-      },
-
-      "prefill": {
-        "email": currentUser.email,
-        "contact": "9999999999"
-      }
+    // ---------------- FIREBASE CONFIG ----------------
+    const firebaseConfig = {
+      apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
+      authDomain: "rojbachat-7e5a8.firebaseapp.com",
+      projectId: "rojbachat-7e5a8",
+      storageBucket: "rojbachat-7e5a8.firebasestorage.app",
+      messagingSenderId: "790739371754",
+      appId: "1:790739371754:web:9b0bd71f2579d664747993"
     };
 
-    let rzp = new Razorpay(options);
-    rzp.open();
-  }
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-  //----------- UPDATE WALLET IN FIRESTORE -----------
-  function updateWallet(amount) {
-    let uid = currentUser.uid;
 
-    let userRef = db.collection("users").doc(uid);
+    // ---------------- SHOW LIVE WALLET BALANCE ----------------
+    auth.onAuthStateChanged(user => {
+        if (!user) {
+            window.location.href = "login.html";
+            return;
+        }
 
-    userRef.get().then((doc) => {
-      let oldBal = 0;
-      if (doc.exists && doc.data().wallet) {
-        oldBal = doc.data().wallet;
-      }
-
-      let newBal = Number(oldBal) + Number(amount);
-
-      userRef.update({ wallet: newBal })
-        .then(() => {
-          alert("₹" + amount + " added to wallet!");
-          window.location.href = "wallet.html";
-        });
+        db.collection("users").doc(user.uid)
+          .onSnapshot(doc => {
+              if (doc.exists) {
+                  let bal = doc.data().wallet || 0;
+                  document.getElementById("walletBalance").innerHTML = bal;
+              }
+          });
     });
-  }
 
+
+    // ---------------- START PAYMENT ----------------
+    function startPayment() {
+        let amount = document.getElementById("amount").value;
+        if (amount < 1) {
+            document.getElementById("msg").innerHTML = "Enter valid amount";
+            return;
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (!user) return;
+
+            var options = {
+                "key": "rzp_test_RxG5pumybpuVqy",   // ← यहाँ Razorpay Key ID डालना है
+                "amount": amount * 100,
+                "currency": "INR",
+                "name": "Roj Bachat App",
+                "description": "Add Money",
+                
+                "handler": function (response) {
+                    addToWallet(amount);
+                },
+
+                "prefill": {
+                    "email": user.email
+                },
+
+                "theme": { "color": "#000000" }
+            };
+
+            var rzp = new Razorpay(options);
+            rzp.open();
+        });
+    }
+
+
+    // ---------------- ADD AMOUNT TO WALLET ----------------
+    function addToWallet(amount) {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const userRef = db.collection("users").doc(user.uid);
+
+        userRef.get().then(doc => {
+            let oldBalance = doc.exists ? (doc.data().wallet || 0) : 0;
+            let newBalance = oldBalance + Number(amount);
+
+            userRef.update({ wallet: newBalance });
+
+            // Add to history
+            db.collection("users").doc(user.uid)
+              .collection("history")
+              .add({
+                  amount: Number(amount),
+                  type: "Added",
+                  date: new Date().toLocaleString()
+              });
+
+            alert("Money Added Successfully!");
+        });
+    }
 </script>
 
 </body>
