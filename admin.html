@@ -16,6 +16,14 @@ button { padding:8px 12px; margin:5px; border:none; border-radius:5px; cursor:po
 table { width:100%; border-collapse: collapse; margin-top:20px; }
 th, td { border:1px solid #333; padding:8px; text-align:center; }
 input { padding:8px; margin-top:10px; width:50%; }
+
+.box {
+  background:white;
+  padding:15px;
+  border-radius:10px;
+  box-shadow:0 0 10px #0002;
+  margin-top:20px;
+}
 </style>
 
 </head>
@@ -38,6 +46,31 @@ input { padding:8px; margin-top:10px; width:50%; }
 <tbody id="userTable"></tbody>
 </table>
 
+
+<!-- ========================= NEW COMMODITY SECTION ========================= -->
+<div class="box">
+<h3>Commodity Manager</h3>
+
+<input type="text" id="cName" placeholder="Commodity Name (Gehu)">
+<input type="number" id="cPrice" placeholder="Current Price per KG">
+<button onclick="addCommodity()" style="background:green;color:white;">Add / Update</button>
+
+<h3>Commodity List</h3>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Price</th>
+<th>Updated</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="commodityTable"></tbody>
+</table>
+</div>
+<!-- ======================================================================== -->
+
+
 <script>
 const firebaseConfig = {
     apiKey: "AIzaSyC98Lxjn6jn-V9NqjcOGluL04EAX4kzpmY",
@@ -51,6 +84,7 @@ firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.firestore();
+
 
 // ------------------- ADMIN AUTH CHECK -------------------
 auth.onAuthStateChanged((user)=>{
@@ -91,7 +125,7 @@ db.collection("users").onSnapshot(snapshot=>{
     document.getElementById("userTable").innerHTML = html;
 });
 
-// ------------------- VIEW USER DETAILS -------------------
+// ------------------- VIEW USER -------------------
 function viewUser(id){
     let user = allUsers.find(u=>u.id === id);
     if(user){
@@ -130,7 +164,76 @@ function searchUser(){
     });
     document.getElementById("userTable").innerHTML = html;
 }
+
+
+
+// ======================================================================
+//                    COMMODITY ADMIN FUNCTIONS
+// ======================================================================
+
+// ADD OR UPDATE COMMODITY
+function addCommodity(){
+    let name = document.getElementById("cName").value.trim().toLowerCase();
+    let price = Number(document.getElementById("cPrice").value);
+
+    if(name.length < 2 || price <= 0){
+        alert("Enter valid name and price");
+        return;
+    }
+
+    db.collection("commodities").doc(name).set({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        price: price,
+        updatedAt: new Date().toISOString()
+    })
+    .then(()=> alert("Commodity Added / Updated Successfully"))
+    .catch(err=> alert(err.message));
+
+    document.getElementById("cName").value = "";
+    document.getElementById("cPrice").value = "";
+}
+
+
+// LOAD ALL COMMODITIES
+db.collection("commodities").onSnapshot(snapshot=>{
+    let html = "";
+    snapshot.forEach(doc=>{
+        let d = doc.data();
+
+        html += `
+        <tr>
+            <td>${d.name}</td>
+            <td>₹${d.price}</td>
+            <td>${d.updatedAt?.slice(0,10)}</td>
+            <td>
+                <button onclick="prefill('${doc.id}', ${d.price})">Edit</button>
+                <button onclick="deleteCommodity('${doc.id}')">Delete</button>
+            </td>
+        </tr>
+        `;
+    });
+
+    document.getElementById("commodityTable").innerHTML = html;
+});
+
+
+// PREFILL FOR EDIT
+function prefill(id, price){
+    document.getElementById("cName").value = id;
+    document.getElementById("cPrice").value = price;
+}
+
+
+// DELETE COMMODITY
+function deleteCommodity(id){
+    if(confirm("Delete commodity?")){
+        db.collection("commodities").doc(id).delete()
+        .then(()=> alert("Deleted Successfully"))
+        .catch(err=> alert(err.message));
+    }
+}
+
 </script>
 
 </body>
-</html>
+    </html>
