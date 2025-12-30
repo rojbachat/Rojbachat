@@ -4,6 +4,11 @@
 <title>Daily Saving – Live Agriculture Prices</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
 body {
     font-family: Arial;
@@ -11,12 +16,10 @@ body {
     background: #f4f6f9;
     padding: 15px;
 }
-
 h2 {
     text-align: center;
     color: #2D1052;
 }
-
 .card {
     background: white;
     padding: 15px;
@@ -24,7 +27,6 @@ h2 {
     margin-top: 12px;
     box-shadow: 0 3px 10px rgba(0,0,0,0.1);
 }
-
 input, select {
     width: 100%;
     padding: 10px;
@@ -32,18 +34,22 @@ input, select {
     border-radius: 8px;
     border: 1px solid #ccc;
 }
-
 .item {
-    padding: 10px 0;
+    padding: 12px 0;
     border-bottom: 1px solid #ddd;
 }
-
-.item:last-child {
-    border-bottom: none;
-}
-
+.item:last-child { border-bottom: none; }
 .label { font-weight: bold; color:#2D1052; }
 .value { color: #333; }
+.fav-btn {
+    background:#2D1052;
+    color:white;
+    padding:6px 10px;
+    border:none;
+    border-radius:6px;
+    float:right;
+    cursor:pointer;
+}
 </style>
 </head>
 
@@ -51,7 +57,6 @@ input, select {
 
 <h2>Live Agriculture Market Prices</h2>
 
-<!-- Search + Filter -->
 <div class="card">
     <input type="text" id="searchBox" placeholder="Search commodity..." onkeyup="applyFilters()">
     
@@ -60,77 +65,81 @@ input, select {
     </select>
 </div>
 
-<!-- Data List -->
-<div id="dataBox" class="card">
-    Loading latest prices...
-</div>
+<div id="dataBox" class="card">Loading...</div>
 
-<!-- Price Graph -->
 <div class="card">
-    <h3>Price Graph (Modal Price)</h3>
+    <h3>Selected Commodity Graph</h3>
     <canvas id="priceChart" height="200"></canvas>
 </div>
 
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-// ---------------- YOUR API DETAILS ----------------
+// ---------------- Firebase ----------------
+const firebaseConfig = {
+  apiKey: "AIzaSyC98Lxjn6jn-V9NQjcOGluL04EAX4kzpmY",
+  authDomain: "rojbachat-7e5a8.firebaseapp.com",
+  projectId: "rojbachat-7e5a8",
+  storageBucket: "rojbachat-7e5a8.appspot.com",
+  messagingSenderId: "790739371754",
+  appId: "1:790739371754:web:9b0bd71f2579d664747993"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ---------------- API DETAILS ----------------
 const API_KEY = "579b464db66ec23bdd000001ca5d4645524f4e3e6741d332ef07ac4f";
 const RESOURCE_ID = "9ef84268-d588-465a-a308-a864a43d0070";
 
 let fullData = [];
 let chart = null;
+let userId = null;
 
-// ---------------- LOAD MARKET DATA ----------------
+auth.onAuthStateChanged((user) => {
+    if (!user) location.href = "login.html";
+    userId = user.uid;
+});
+
+// ------------- Load API Data -------------
 async function loadMarketRates() {
-    try {
-        const url = `https://api.data.gov.in/resource/${RESOURCE_ID}?api-key=${API_KEY}&format=json&limit=50`;
+    const url = `https://api.data.gov.in/resource/${RESOURCE_ID}?api-key=${API_KEY}&format=json&limit=50`;
+    const res = await fetch(url);
+    const json = await res.json();
+    fullData = json.records || [];
 
-        const response = await fetch(url);
-        const data = await response.json();
-
-        if (!data.records) {
-            document.getElementById("dataBox").innerHTML = "No data found!";
-            return;
-        }
-
-        fullData = data.records;
-
-        loadCommodityDropdown(fullData);
-        renderData(fullData);
-        drawGraph(fullData);
-
-    } catch (error) {
-        console.log(error);
-        document.getElementById("dataBox").innerHTML = "Failed to load!";
-    }
+    loadCommodityDropdown();
+    renderData(fullData);
 }
-
 loadMarketRates();
 
-// ---------------- FILL COMMODITY FILTER ----------------
-function loadCommodityDropdown(list) {
-    const dropdown = document.getElementById("commodityFilter");
-    dropdown.innerHTML = `<option value="">Filter: All Commodities</option>`;
-
-    const set = [...new Set(list.map(i => i.commodity))];
-
-    set.forEach(c => {
-        dropdown.innerHTML += `<option value="${c}">${c}</option>`;
+// ------------- Dropdown Fill -------------
+function loadCommodityDropdown() {
+    const box = document.getElementById("commodityFilter");
+    box.innerHTML = `<option value="">Filter: All Commodities</option>`;
+    [...new Set(fullData.map(i => i.commodity))].forEach(c=>{
+        box.innerHTML += `<option value="${c}">${c}</option>`;
     });
 }
 
-// ---------------- RENDER LIST ----------------
-function renderData(list) {
+// ------------- Render List -------------
+async function renderData(list) {
+    let favs = await getFavourites();
     let html = "";
 
     list.forEach(item => {
         let perKg = (item.modal_price / 100).toFixed(2);
+        let isFav = favs.includes(item.commodity);
 
         html += `
-            <div class="item">
-                <div><span class="label">Commodity:</span> ${item.commodity}</div>
+            <div class="item" onclick="plotGraph('${item.commodity}', ${item.modal_price})">
+                <div>
+                    <span class="label">Commodity:</span> ${item.commodity}
+                    <button class="fav-btn" onclick="event.stopPropagation(); toggleFav('${item.commodity}')">
+                        ${isFav ? "★ Saved" : "☆ Save"}
+                    </button>
+                </div>
                 <div><span class="label">Variety:</span> ${item.variety}</div>
                 <div><span class="label">Market:</span> ${item.market}</div>
                 <div><span class="label">Modal Price:</span> ₹${item.modal_price}</div>
@@ -142,37 +151,52 @@ function renderData(list) {
     document.getElementById("dataBox").innerHTML = html;
 }
 
-// ---------------- FILTER FUNCTION ----------------
-function applyFilters() {
-    const text = document.getElementById("searchBox").value.toLowerCase();
-    const selected = document.getElementById("commodityFilter").value;
 
-    let filtered = fullData.filter(item =>
-        item.commodity.toLowerCase().includes(text) &&
-        (selected === "" || item.commodity === selected)
+// ------------- Favourite Save/Remove -------------
+async function getFavourites() {
+    let doc = await db.collection("users").doc(userId).collection("favourites").get();
+    return doc.docs.map(d => d.id);
+}
+
+async function toggleFav(name) {
+    let favRef = db.collection("users").doc(userId).collection("favourites").doc(name);
+    let exists = (await favRef.get()).exists;
+
+    if (exists) await favRef.delete();
+    else await favRef.set({ saved: true });
+
+    renderData(fullData);
+}
+
+
+// ------------- Search + Filter -------------
+function applyFilters() {
+    let text = document.getElementById("searchBox").value.toLowerCase();
+    let f = document.getElementById("commodityFilter").value;
+
+    let filtered = fullData.filter(x =>
+        x.commodity.toLowerCase().includes(text) &&
+        (f === "" || f === x.commodity)
     );
 
     renderData(filtered);
-    drawGraph(filtered);
 }
 
-// ---------------- GRAPH ----------------
-function drawGraph(list) {
-    const labels = list.map(x => x.commodity);
-    const prices = list.map(x => x.modal_price);
+
+// ------------- Graph (Single Commodity Only) -------------
+function plotGraph(name, price) {
+    let ctx = document.getElementById("priceChart").getContext("2d");
 
     if (chart) chart.destroy();
 
-    const ctx = document.getElementById("priceChart").getContext("2d");
-
     chart = new Chart(ctx, {
-        type: "bar",
+        type: "line",
         data: {
-            labels: labels,
+            labels: ["Today"],
             datasets: [{
-                label: "Modal Price",
-                data: prices,
-                borderWidth: 1
+                label: name + " Price",
+                data: [price],
+                borderWidth: 2
             }]
         }
     });
