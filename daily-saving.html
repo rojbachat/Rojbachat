@@ -1,1 +1,93 @@
-coming soon 
+<!DOCTYPE html>
+<html>
+<head>
+<title>Daily Saving – Live Agriculture Prices</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body {
+    font-family: Arial;
+    margin: 0;
+    background: #f4f6f9;
+    padding: 15px;
+}
+
+h2 {
+    text-align: center;
+    color: #2D1052;
+}
+
+.card {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.item {
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.item:last-child {
+    border-bottom: none;
+}
+
+.label { font-weight: bold; color:#2D1052; }
+.value { color: #333; }
+</style>
+
+</head>
+<body>
+
+<h2>Live Agriculture Market Prices</h2>
+
+<div id="dataBox" class="card">
+    Loading latest prices...
+</div>
+
+<script>
+// ---------------- YOUR API DETAILS ----------------
+const API_KEY = "579b464db66ec23bdd000001ca5d4645524f4e3e6741d332ef07ac4f";
+const RESOURCE_ID = "9ef84268-d588-465a-a308-a864a43d0070";
+
+// ---------------- FETCH FUNCTION ----------------
+async function loadMarketRates() {
+    try {
+        const url = `https://api.data.gov.in/resource/${RESOURCE_ID}?api-key=${API_KEY}&format=json&limit=20`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!data.records || data.records.length === 0) {
+            document.getElementById("dataBox").innerHTML = "No data found!";
+            return;
+        }
+
+        let html = "";
+
+        data.records.forEach(item => {
+            html += `
+                <div class="item">
+                    <div><span class="label">Commodity:</span> <span class="value">${item.commodity}</span></div>
+                    <div><span class="label">Variety:</span> <span class="value">${item.variety}</span></div>
+                    <div><span class="label">Market:</span> <span class="value">${item.market}</span></div>
+                    <div><span class="label">Modal Price:</span> <span class="value">₹${item.modal_price}</span></div>
+                </div>
+            `;
+        });
+
+        document.getElementById("dataBox").innerHTML = html;
+
+    } catch (err) {
+        document.getElementById("dataBox").innerHTML = "Failed to load data!";
+        console.log(err);
+    }
+}
+
+loadMarketRates();
+</script>
+
+</body>
+</html>
