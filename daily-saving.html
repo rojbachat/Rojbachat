@@ -45,45 +45,34 @@ input, select {
 .label { font-weight: bold; color:#2D1052; }
 .value { color: #333; }
 </style>
-
 </head>
+
 <body>
 
 <h2>Live Agriculture Market Prices</h2>
 
-<!-- Search Bar -->
+<!-- Search + Filter -->
 <div class="card">
     <input type="text" id="searchBox" placeholder="Search commodity..." onkeyup="applyFilters()">
     
     <select id="commodityFilter" onchange="applyFilters()">
-        <option value="">Filter by Commodity</option>
+        <option value="">Filter: All Commodities</option>
     </select>
 </div>
 
-<!-- Live Data -->
+<!-- Data List -->
 <div id="dataBox" class="card">
     Loading latest prices...
 </div>
 
-<!-- Graph Box -->
+<!-- Price Graph -->
 <div class="card">
     <h3>Price Graph (Modal Price)</h3>
     <canvas id="priceChart" height="200"></canvas>
 </div>
 
-<!-- Firebase Save -->
-<div class="card">
-    <h3>Save Item</h3>
-    <button onclick="saveToFirebase()">Save Today’s Prices</button>
-    <p id="saveMsg"></p>
-</div>
-
-<!-- Chart.js CDN -->
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- Firebase CDN -->
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
 
 <script>
 // ---------------- YOUR API DETAILS ----------------
@@ -91,22 +80,9 @@ const API_KEY = "579b464db66ec23bdd000001ca5d4645524f4e3e6741d332ef07ac4f";
 const RESOURCE_ID = "9ef84268-d588-465a-a308-a864a43d0070";
 
 let fullData = [];
-let chart;
+let chart = null;
 
-// ---------------- FIREBASE INIT ----------------
-const firebaseConfig = {
-    apiKey: "YOUR_FIREBASE_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "ID",
-    appId: "APP_ID"
-};
-
-const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-// ---------------- FETCH MARKET RATES ----------------
+// ---------------- LOAD MARKET DATA ----------------
 async function loadMarketRates() {
     try {
         const url = `https://api.data.gov.in/resource/${RESOURCE_ID}?api-key=${API_KEY}&format=json&limit=50`;
@@ -114,47 +90,43 @@ async function loadMarketRates() {
         const response = await fetch(url);
         const data = await response.json();
 
+        if (!data.records) {
+            document.getElementById("dataBox").innerHTML = "No data found!";
+            return;
+        }
+
         fullData = data.records;
 
-        // Fill dropdown
-        const compSet = new Set();
-        fullData.forEach(x => compSet.add(x.commodity));
-
-        compSet.forEach(c => {
-            document.getElementById("commodityFilter").innerHTML += `<option value="${c}">${c}</option>`;
-        });
-
+        loadCommodityDropdown(fullData);
         renderData(fullData);
         drawGraph(fullData);
 
-    } catch (err) {
-        document.getElementById("dataBox").innerHTML = "Failed to load data!";
-        console.log(err);
+    } catch (error) {
+        console.log(error);
+        document.getElementById("dataBox").innerHTML = "Failed to load!";
     }
 }
 
 loadMarketRates();
 
-// ---------------- SEARCH + FILTER ----------------
-function applyFilters() {
-    const searchText = document.getElementById("searchBox").value.toLowerCase();
-    const selectedCommodity = document.getElementById("commodityFilter").value;
+// ---------------- FILL COMMODITY FILTER ----------------
+function loadCommodityDropdown(list) {
+    const dropdown = document.getElementById("commodityFilter");
+    dropdown.innerHTML = `<option value="">Filter: All Commodities</option>`;
 
-    let filtered = fullData.filter(item => 
-        (item.commodity.toLowerCase().includes(searchText)) &&
-        (selectedCommodity === "" || item.commodity === selectedCommodity)
-    );
+    const set = [...new Set(list.map(i => i.commodity))];
 
-    renderData(filtered);
-    drawGraph(filtered);
+    set.forEach(c => {
+        dropdown.innerHTML += `<option value="${c}">${c}</option>`;
+    });
 }
 
-// ---------------- RENDER PRICE LIST ----------------
+// ---------------- RENDER LIST ----------------
 function renderData(list) {
     let html = "";
 
     list.forEach(item => {
-        let perKg = (item.modal_price / 100).toFixed(2); // Convert to per KG
+        let perKg = (item.modal_price / 100).toFixed(2);
 
         html += `
             <div class="item">
@@ -162,12 +134,26 @@ function renderData(list) {
                 <div><span class="label">Variety:</span> ${item.variety}</div>
                 <div><span class="label">Market:</span> ${item.market}</div>
                 <div><span class="label">Modal Price:</span> ₹${item.modal_price}</div>
-                <div><span class="label">Per Kg (Approx):</span> ₹${perKg}</div>
+                <div><span class="label">Approx Per Kg:</span> ₹${perKg}</div>
             </div>
         `;
     });
 
     document.getElementById("dataBox").innerHTML = html;
+}
+
+// ---------------- FILTER FUNCTION ----------------
+function applyFilters() {
+    const text = document.getElementById("searchBox").value.toLowerCase();
+    const selected = document.getElementById("commodityFilter").value;
+
+    let filtered = fullData.filter(item =>
+        item.commodity.toLowerCase().includes(text) &&
+        (selected === "" || item.commodity === selected)
+    );
+
+    renderData(filtered);
+    drawGraph(filtered);
 }
 
 // ---------------- GRAPH ----------------
@@ -180,32 +166,18 @@ function drawGraph(list) {
     const ctx = document.getElementById("priceChart").getContext("2d");
 
     chart = new Chart(ctx, {
-        type: "line",
+        type: "bar",
         data: {
             labels: labels,
             datasets: [{
                 label: "Modal Price",
                 data: prices,
-                borderWidth: 2
+                borderWidth: 1
             }]
         }
     });
 }
-
-// ---------------- SAVE TO FIREBASE ----------------
-async function saveToFirebase() {
-    try {
-        await db.collection("daily_prices").add({
-            date: new Date().toLocaleString(),
-            items: fullData
-        });
-
-        document.getElementById("saveMsg").innerText = "Saved Successfully ✔";
-    } catch (e) {
-        document.getElementById("saveMsg").innerText = "Error saving!";
-    }
-}
 </script>
 
 </body>
-        </html>
+</html>
